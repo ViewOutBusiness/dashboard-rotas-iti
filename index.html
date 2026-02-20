@@ -3,544 +3,133 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard de Rotas - ITI Alho</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<title>Dashboard Rotas - ITI ALHO</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
-
-.header {
-  background: linear-gradient(135deg, #1a237e, #283593);
-  color: white; padding: 16px 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-.header h1 { font-size: 20px; font-weight: 600; }
-.header .subtitle { font-size: 13px; opacity: 0.8; }
-
-.controls {
-  background: white; padding: 14px 24px;
-  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
-  border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.control-group { display: flex; flex-direction: column; gap: 4px; }
-.control-group label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-.control-group select {
-  padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px;
-  font-size: 14px; background: white; cursor: pointer; min-width: 200px;
-}
-.control-group select:focus { outline: none; border-color: #1a237e; box-shadow: 0 0 0 2px rgba(26,35,126,0.2); }
-
-.day-filters { display: flex; gap: 6px; align-items: center; }
-.day-btn {
-  padding: 7px 14px; border: 2px solid #ddd; border-radius: 20px;
-  font-size: 13px; font-weight: 600; cursor: pointer; background: white;
-  transition: all 0.2s;
-}
-.day-btn:hover { transform: scale(1.05); }
-.day-btn.active { color: white; border-color: transparent; }
-.day-btn[data-day="1"].active { background: #1565c0; }
-.day-btn[data-day="2"].active { background: #2e7d32; }
-.day-btn[data-day="3"].active { background: #e65100; }
-.day-btn[data-day="4"].active { background: #616161; }
-.day-btn[data-day="5"].active { background: #f9a825; color: #333; }
-.day-btn[data-day="all"].active { background: #1a237e; }
-
-.stats-bar {
-  display: flex; gap: 20px; margin-left: auto; align-items: center;
-}
-.stat { text-align: center; }
-.stat .value { font-size: 22px; font-weight: 700; color: #1a237e; }
-.stat .label { font-size: 11px; color: #888; text-transform: uppercase; }
-
-.main-content { display: flex; height: calc(100vh - 130px); }
-
-#map { flex: 1; z-index: 1; }
-
-.sidebar {
-  width: 340px; background: white; overflow-y: auto;
-  border-left: 1px solid #e0e0e0; padding: 0;
-  box-shadow: -2px 0 8px rgba(0,0,0,0.05);
-}
-.sidebar-header {
-  padding: 14px 16px; background: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 14px; font-weight: 600; color: #333;
-  position: sticky; top: 0; z-index: 2;
-}
-.store-item {
-  padding: 10px 16px; border-bottom: 1px solid #f0f0f0;
-  cursor: pointer; transition: background 0.15s;
-  display: flex; align-items: center; gap: 10px;
-}
-.store-item:hover { background: #f5f7ff; }
-.store-order {
-  width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
-}
-.store-info { flex: 1; min-width: 0; }
-.store-name { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.store-coords { font-size: 11px; color: #999; }
-.store-day-tag {
-  font-size: 10px; padding: 2px 8px; border-radius: 10px;
-  font-weight: 600; color: white; flex-shrink: 0;
-}
-
-.day-group-header {
-  padding: 10px 16px; background: #f0f2f5;
-  font-size: 13px; font-weight: 700; color: #444;
-  border-bottom: 1px solid #e0e0e0;
-  cursor: pointer; display: flex; align-items: center;
-  justify-content: space-between; user-select: none;
-  transition: background 0.15s;
-}
-.day-group-header:hover { background: #e8eaf6; }
-.day-group-header .arrow {
-  font-size: 10px; transition: transform 0.25s; color: #888;
-}
-.day-group-header.collapsed .arrow { transform: rotate(-90deg); }
-.day-group-content { overflow: hidden; transition: max-height 0.3s ease; }
-.day-group-content.collapsed { max-height: 0 !important; }
-.day-group-header .day-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 10px;
-  color: white; font-size: 11px; margin-left: 8px;
-}
-.day-group-header .store-count {
-  font-size: 11px; color: #888; font-weight: 400; margin-left: auto; margin-right: 8px;
-}
-
-.legend {
-  position: absolute; bottom: 30px; left: 16px; z-index: 1000;
-  background: white; padding: 12px 16px; border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-  font-size: 12px;
-}
-.legend-title { font-weight: 700; margin-bottom: 8px; color: #333; }
-.legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
-.legend-color { width: 14px; height: 14px; border-radius: 50%; }
-.legend-line { width: 20px; height: 3px; border-radius: 2px; }
-
-.start-icon {
-  background: #d32f2f; color: white; border-radius: 50%;
-  width: 32px; height: 32px; display: flex; align-items: center;
-  justify-content: center; font-size: 16px; font-weight: bold;
-  border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-
-/* Hidden by default on desktop */
-.sidebar-close { display: none; }
-
-/* Mobile toggle button */
-.sidebar-toggle {
-  display: none;
-  position: fixed; bottom: 16px; right: 16px; z-index: 1001;
-  width: 52px; height: 52px; border-radius: 50%;
-  background: #1a237e; color: white; border: none;
-  font-size: 22px; cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  align-items: center; justify-content: center;
-  transition: transform 0.2s;
-}
-.sidebar-toggle:active { transform: scale(0.9); }
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-  .header { padding: 10px 14px; }
-  .header h1 { font-size: 16px; }
-  .header .subtitle { font-size: 11px; }
-
-  .controls {
-    padding: 10px 14px; gap: 10px;
-    flex-direction: column; align-items: stretch;
-  }
-  .control-group select { min-width: unset; width: 100%; }
-  .day-filters { flex-wrap: wrap; justify-content: center; }
-  .day-btn { padding: 6px 10px; font-size: 12px; }
-  .stats-bar { justify-content: center; gap: 16px; margin-left: 0; }
-  .stat .value { font-size: 18px; }
-
-  .main-content {
-    flex-direction: column;
-    height: calc(100vh - 200px);
-    position: relative;
-  }
-
-  #map { flex: 1; min-height: 0; }
-
-  .sidebar {
-    width: 100%; border-left: none;
-    position: fixed; bottom: 0; left: 0; right: 0;
-    z-index: 1000; max-height: 55vh;
-    border-top: 2px solid #1a237e;
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-  }
-  .sidebar.mobile-open { transform: translateY(0); }
-
-  .sidebar-header {
-    border-radius: 16px 16px 0 0;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px;
-  }
-  .sidebar-close {
-    background: none; border: none; font-size: 28px;
-    cursor: pointer; color: #666; padding: 4px 8px;
-    line-height: 1; display: block;
-  }
-
-  .sidebar-toggle { display: flex; }
-
-  .legend { bottom: 16px; left: 10px; font-size: 11px; padding: 8px 12px; }
-  .legend-title { font-size: 12px; }
-}
-
-@media (max-width: 480px) {
-  .main-content { height: calc(100vh - 240px); }
-  .day-btn { padding: 5px 8px; font-size: 11px; }
-  .stats-bar { gap: 12px; }
-  .stat .value { font-size: 16px; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#f0f2f5;display:flex;height:100vh}
+.sidebar{width:360px;background:#fff;box-shadow:2px 0 10px rgba(0,0,0,.1);display:flex;flex-direction:column;overflow:hidden;z-index:1000}
+.sidebar-header{background:linear-gradient(135deg,#1a237e,#283593);color:#fff;padding:16px;text-align:center}
+.sidebar-header h1{font-size:18px;margin-bottom:4px}
+.sidebar-header p{font-size:12px;opacity:.8}
+.controls{padding:12px;border-bottom:1px solid #e0e0e0;background:#fafafa}
+.controls select{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:14px;margin-bottom:6px;background:#fff}
+.stats{padding:8px 12px;background:#f5f5f5;border-bottom:1px solid #e0e0e0;font-size:13px;color:#1a237e;font-weight:600}
+.sidebar-list{flex:1;overflow-y:auto;padding:8px}
+.day-group-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#e8eaf6;border-radius:8px;margin-bottom:4px;cursor:pointer;font-weight:700;font-size:14px;color:#1a237e;user-select:none}
+.day-group-header:hover{background:#c5cae9}
+.day-group-header .arrow{transition:transform .2s;font-size:12px}
+.day-group-header.collapsed .arrow{transform:rotate(-90deg)}
+.day-group-content{padding:0 0 8px 0}
+.day-group-content.collapsed{display:none}
+.store-item{display:flex;align-items:flex-start;gap:8px;padding:8px;margin:3px 0;border-radius:6px;cursor:pointer;transition:.15s}
+.store-item:hover{background:#f0f0f0}
+.store-item .order-num{min-width:24px;height:24px;background:#1a237e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.store-item .store-info{flex:1;min-width:0}
+.store-item .store-name{font-size:13px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-item .store-addr{font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.map-container{flex:1;position:relative}
+#map{width:100%;height:100%}
+.sidebar-toggle{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:1001;background:#1a237e;color:#fff;border:none;border-radius:50px;padding:12px 24px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,.3)}
+.sidebar-close{display:none;position:absolute;top:12px;right:12px;background:none;border:none;color:#fff;font-size:28px;cursor:pointer;z-index:1002;line-height:1}
+@media(max-width:768px){
+  body{flex-direction:column}
+  .sidebar{position:fixed;bottom:0;left:0;right:0;width:100%;height:70vh;transform:translateY(100%);transition:transform .3s ease;z-index:1001;border-radius:16px 16px 0 0}
+  .sidebar.mobile-open{transform:translateY(0)}
+  .sidebar-toggle{display:flex}
+  .sidebar-close{display:block}
+  .map-container{width:100%;height:100%}
 }
 </style>
 </head>
 <body>
-
-<div class="header">
-  <div>
-    <h1>Dashboard de Rotas - ITI Alho</h1>
-    <div class="subtitle">Roteirização otimizada de visitas por vendedor</div>
+<div class="sidebar" id="sidebar">
+  <button class="sidebar-close" id="sidebarClose">&times;</button>
+  <div class="sidebar-header">
+    <h1>Rotas Otimizadas</h1>
+    <p>ITI ALHO - Guarujá → Itanhaém</p>
   </div>
+  <div class="controls">
+    <select id="vendedorSelect"><option value="">Todos os Vendedores</option></select>
+    <select id="diaSelect"><option value="">Todos os Dias</option></select>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="sidebar-list" id="sidebarList"></div>
 </div>
-
-<div class="controls">
-  <div class="control-group">
-    <label>Vendedor</label>
-    <select id="vendedorFilter">
-      <option value="all">Todos os Vendedores</option>
-    </select>
-  </div>
-  <div class="control-group">
-    <label>Dia da Semana</label>
-    <div class="day-filters">
-      <button class="day-btn active" data-day="all" onclick="filterDay('all')">Todos</button>
-      <button class="day-btn" data-day="1" onclick="filterDay(1)">Seg</button>
-      <button class="day-btn" data-day="2" onclick="filterDay(2)">Ter</button>
-      <button class="day-btn" data-day="3" onclick="filterDay(3)">Qua</button>
-      <button class="day-btn" data-day="4" onclick="filterDay(4)">Qui</button>
-      <button class="day-btn" data-day="5" onclick="filterDay(5)">Sex</button>
-    </div>
-  </div>
-  <div class="stats-bar">
-    <div class="stat">
-      <div class="value" id="statLojas">0</div>
-      <div class="label">Lojas</div>
-    </div>
-    <div class="stat">
-      <div class="value" id="statDias">0</div>
-      <div class="label">Dias</div>
-    </div>
-    <div class="stat">
-      <div class="value" id="statKm">0</div>
-      <div class="label">Km (est.)</div>
-    </div>
-  </div>
-</div>
-
-<div class="main-content">
+<button class="sidebar-toggle" id="sidebarToggle">☰ Rotas</button>
+<div class="map-container">
   <div id="map"></div>
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-header" id="sidebarHeader">
-      <span id="sidebarTitle">Lojas na rota</span>
-      <button class="sidebar-close" id="sidebarClose" onclick="toggleSidebar()">&times;</button>
-    </div>
-    <div id="storeList"></div>
-  </div>
-  <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
 </div>
-
 <script>
-const DATA = [{"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 1, "Nome da Loja": "SUPERMERCADO LAS PALMAS", "Endereço": "AVENIDA CONSELHEIRO NEBIAS, 859    BOQUEIRAO 11045-003 SANTOS", "Latitude": -23.9641666, "Longitude": -46.3233459}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 2, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "AV SIQUEIRA CAMPOS, 585    EMBARE 11045-201 SANTOS", "Latitude": -23.9691495, "Longitude": -46.3197033999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 3, "Nome da Loja": "ADF SOUZA LTDA", "Endereço": "AV AFONSO PENA, 336    MACUCO 11020-000 SANTOS", "Latitude": -23.9655341, "Longitude": -46.3099178999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 4, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "R ALEXANDRE MARTINS, 125    APARECIDA 11025-201 SANTOS", "Latitude": -23.9749868, "Longitude": -46.309686}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 5, "Nome da Loja": "SUPERMERCADO VARANDAS E NAVAS LTDA", "Endereço": "AVENIDA AFFONSO PENNA, 622    APARECIDA 11020-002 SANTOS", "Latitude": -23.9741344, "Longitude": -46.3021851}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 6, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "AV AFFONSO PENNA, 622    APARECIDA 11020-002 SANTOS", "Latitude": -23.9741344, "Longitude": -46.3021851}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 7, "Nome da Loja": "CMR COMERCIO DE ALIMENTOS LTDA", "Endereço": "AV DOS BANCARIOS, 85     PONTA DA PRAIA 11030-301 SANTOS", "Latitude": -23.9873292, "Longitude": -46.3021825}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 8, "Nome da Loja": "SUPERMERCADO JOIA LTDA", "Endereço": "AV ADEMAR DE BARROS, 3255   VILA LIGIA 11430-005 GUARUJA", "Latitude": -23.989775, "Longitude": -46.2890553}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 9, "Nome da Loja": "EMPORIO X", "Endereço": "AV ANTONIO CORREA, 524    VILA LYGIA 11430-030 GUARUJA", "Latitude": -23.9944837, "Longitude": -46.2891953}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 10, "Nome da Loja": "SUPERMERCADO GOL LTDA", "Endereço": "AV ANTONIO MIGUEL DOS SANTOS, 456    VILA SANTA ROSA 11431-050 GUARUJA", "Latitude": -23.9975448, "Longitude": -46.2785527}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 11, "Nome da Loja": "SUPERMERCADO ILHA LAS PALMAS", "Endereço": "AV DOS CAICARAS, 760    JARDIM LAS PALMAS 11420-440 GUARUJA", "Latitude": -24.0043113, "Longitude": -46.2737152}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 12, "Nome da Loja": "ESTRELA DO LITORAL ALIMENTOS LTDA", "Endereço": "R DOS GERANIOS, 136    JARDIM PRIMAVERA 11432-330 GUARUJA", "Latitude": -23.9903579, "Longitude": -46.2703871}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 13, "Nome da Loja": "SUPERMERCADO JOIA LTDA", "Endereço": "R PETROPOLIS, 291    BARRA FUNDA 11410-300 GUARUJA", "Latitude": -23.9959045, "Longitude": -46.2605061999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 14, "Nome da Loja": "D. A BASTOS", "Endereço": "R ANTONIO BARACAL, 561    MORRINHOS I 11495-020 GUARUJA", "Latitude": -23.9612391, "Longitude": -46.2525096}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 15, "Nome da Loja": "PASCALE, PETRELLI & CIA LTDA", "Endereço": "AV ANTENOR PIMENTEL, 0      MORRINHO 11495-000 GUARUJA", "Latitude": -23.9616687, "Longitude": -46.2420246999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 16, "Nome da Loja": "ANDRADE COMERCIO DE PRODUTOS ALIMENTICIOS LTDA - E", "Endereço": "R JULIO PEDRO PONTES, 207    VICENTE DE CARVALHO 11462-300 GUARUJA", "Latitude": -23.9552903, "Longitude": -46.2888413}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 17, "Nome da Loja": "CMR COMERCIO DE ALIMENTOS LTDA", "Endereço": "AVENIDA SANTOS DUMONT - DE 2 A 762 - LADO PAR, 474    SITIO PAECARA (VICENTE DE 11460-000 GUARUJA", "Latitude": -23.9532108, "Longitude": -46.2923433}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 18, "Nome da Loja": "LATICINIOS ILHA DO GUARUJA LTDA", "Endereço": "AV SANTOS DUMONT, 1125   SITIO PAE CARA 11460-003 GUARUJA", "Latitude": -23.9530356, "Longitude": -46.2927087}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 19, "Nome da Loja": "EOM COMERCIO DE ALIMENTOS LTDA", "Endereço": "R PRIMEIRO DE JUNHO, 200    SITIO PAECARA (VICENTE DE 11460-240 GUARUJA", "Latitude": -23.9469084, "Longitude": -46.2883328}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 20, "Nome da Loja": "MERCADO MARE MANSA", "Endereço": "R JARANAS, 23     BAL.PR.PERNAMBUCO 11444-700 GUARUJA", "Latitude": -23.9747424, "Longitude": -46.1919474}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 1, "Nome da Loja": "SUPERMERCADO TALISMA DE SAO VICENTE LTDA", "Endereço": "AV NACOES UNIDAS, 865    VILA MARGARIDA 11330-300 SAO VICENTE", "Latitude": -23.9664144, "Longitude": -46.4058253}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 2, "Nome da Loja": "SUPERMERCADO TALISMA DA VILA LTDA", "Endereço": "R MONTE BELVEDERE, 610    VILA MARGARIDA 11330-580 SAO VICENTE", "Latitude": -23.9670939, "Longitude": -46.4036763999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 3, "Nome da Loja": "ULISSES ALVES DOMINGUES CIA LTDA", "Endereço": "R XV DE NOVEMBRO, 537    CENTRO 11310-400 SAO VICENTE", "Latitude": -23.9640252, "Longitude": -46.385889}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 4, "Nome da Loja": "CASA LUANDA SUPERMERCADOS LTDA", "Endereço": "AV ANTONIO EMERICK, 335    VILA VALENCA 11390-001 SAO VICENTE", "Latitude": -23.9621618, "Longitude": -46.3796848}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 5, "Nome da Loja": "SUPERMERCADO FRANSUE LTDA", "Endereço": "R DOMINGOS JOSE MARTINS, 170    VL SAO JORGE 11085-800 SANTOS", "Latitude": -23.9487135, "Longitude": -46.366809}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 6, "Nome da Loja": "SUPERMERCADO BARROS LTDA", "Endereço": "PC JOSE DE OLIVEIRA LOPES, 86     JD CASTELO 11088-190 SANTOS", "Latitude": -23.9431826, "Longitude": -46.3807392999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 7, "Nome da Loja": "ANTONIO MIRAMOTO & FILHO LTDA", "Endereço": "PC MATEO BEI, 93     JOQUEI CLUBE 11360-260 SAO VICENTE", "Latitude": -23.947969, "Longitude": -46.398074}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 8, "Nome da Loja": "MERCADO M. RODRIGUES FILHOS LTDA", "Endereço": "AV SANTISTA, 623    MORRO NOVA CINTRA 11080-000 SANTOS", "Latitude": -23.9445624, "Longitude": -46.3516065}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 9, "Nome da Loja": "MERCADO MARTINHO RODRIGUES LTDA - EPP", "Endereço": "R DOIS, 947    MORRO SAO BENTO 11082-310 SANTOS", "Latitude": -23.939518, "Longitude": -46.3500237}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 10, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "R PIO XII, 82     SABOO 11085-050 SANTOS", "Latitude": -23.9326681, "Longitude": -46.3471943}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 11, "Nome da Loja": "MINIMERCADO E PADARIA ALMEIDA", "Endereço": "R FLAMINIO LEVY, 11     SABOO 11085-080 SANTOS", "Latitude": -23.9317849, "Longitude": -46.3492376}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 12, "Nome da Loja": "MINIMERCADO E PADARIA BABALOO LTDA", "Endereço": "R DOM DUARTE LEOPOLDO E SILVA, 65     MARAPE 11070-130 SANTOS", "Latitude": -23.9547224, "Longitude": -46.3461262}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 13, "Nome da Loja": "SUPERMERCADO  VARANDAS LTDA", "Endereço": "AV SENADOR PINHEIRO MACHADO, 643    CAMPO GRANDE 11075-003 SANTOS", "Latitude": -23.9559797, "Longitude": -46.3442474}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 14, "Nome da Loja": "SUPERMERCADO FRANSUE LTDA", "Endereço": "EVARISTO DA VEIGA , 224    CAMPO GRANDE 11075-661 SANTOS", "Latitude": -23.9576904, "Longitude": -46.3414606}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 15, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "AVENIDA DOUTOR MOURA RIBEIRO - LADO PAR, 116    MARAPE 11070-060 SANTOS", "Latitude": -23.9591621, "Longitude": -46.3482415}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 16, "Nome da Loja": "RMG COMERCIO DE ALIMENTOS LTDA", "Endereço": "R CARVALHO DE MENDONCA, 336    CAMPO GRANDE 11070-101 SANTOS", "Latitude": -23.9529274, "Longitude": -46.334716}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 1, "Nome da Loja": "MINI MERCADO NINA", "Endereço": "R FRANCISCO CONRADO DOS SANTOS, 650    ANHANGUERA 11718-050 PRAIA GRANDE", "Latitude": -24.019254, "Longitude": -46.4805494}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 2, "Nome da Loja": "LINDINALVA DOS SANTOS", "Endereço": "AVENIDA SAO FRANCISCO DE ASSIS, 4136   TUPIRY 11724-475 PRAIA GRANDE", "Latitude": -24.0129954, "Longitude": -46.4708367}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 3, "Nome da Loja": "MENEZES & OLIVEIRA MERCADO, ACOUGUE E PADARIA LTDA", "Endereço": "AV SAO FRANCISCO DE ASSIS, 3685   TUPIRY 11724-475 PRAIA GRANDE", "Latitude": -24.0120558, "Longitude": -46.4709772}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 4, "Nome da Loja": "MINIMERCADO NOSSA SENHORA APARECIDA", "Endereço": "AV SAO FRANCISCO DE ASSIS, 3834   TUPIRY 11724-475 PRAIA GRANDE", "Latitude": -24.0111637, "Longitude": -46.4711676}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 5, "Nome da Loja": "LAURITA PEREIRA DA SILVA OLIVEIRA", "Endereço": "R NILCEIA APARECIDA DE CAMARGO, 66     SAMARITA 11345-595 SAO VICENTE", "Latitude": -23.994903, "Longitude": -46.4753639}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 6, "Nome da Loja": "SUPERMERCADO APR LTDA", "Endereço": "AV DOUTOR ESMERALDO SOARES TARQUINIO DE CAMPOS FIL, 752    PARQUE DAS BANDEIRAS 11346-000 SAO VICENTE", "Latitude": -23.9868072, "Longitude": -46.4823134}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 7, "Nome da Loja": "SUPERMERCADO FLOR DO PARQUE LTDA", "Endereço": "AV ESMERALDO SOARES TARQUINIO DE CAMPOS FILHO, 113    PARQUE DAS BANDEIRAS 11346-000 SAO VICENTE", "Latitude": -23.9856128, "Longitude": -46.4835309}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 8, "Nome da Loja": "ATALAIA COMERCIO ATACADISTA DE PRODUTOS ALIMENTICI", "Endereço": "AV QUARENTENARIO, 310    JARDIM IRMA DOLORES 11347-520 SAO VICENTE", "Latitude": -23.9863801, "Longitude": -46.4680835}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 9, "Nome da Loja": "SUPERMERCADO ZERO HORA", "Endereço": "R ANTONIO CANDIDO DA SILVA, 664    VILA SONIA 11722-000 PRAIA GRANDE", "Latitude": -24.0007038, "Longitude": -46.4461828}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 10, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Endereço": "R AUGUSTO RIBEIRO PACHECO, 438    ANTARTICA 11721-110 PRAIA GRANDE", "Latitude": -24.0117872, "Longitude": -46.4523017}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 11, "Nome da Loja": "PANIFICADORA POMPEIA LIMITADA EPP", "Endereço": "AV IRMAOS ADORNO, 449    SITIO DO CAMPO 11725-320 PRAIA GRANDE", "Latitude": -23.9962677, "Longitude": -46.4221399}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 12, "Nome da Loja": "MERCEARIA ESPAGUETE", "Endereço": "AV PROFESSOR OLAVO PAULA BORGES, 45     SITIO DO CAMPO 11725-410 PRAIA GRANDE", "Latitude": -23.9945534, "Longitude": -46.4182083}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 13, "Nome da Loja": "SUPERMERCADO FIGUEROA", "Endereço": "AV MARECHAL MALLET, 532    FORTE 11700-400 PRAIA GRANDE", "Latitude": -24.0124027, "Longitude": -46.4013875}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 14, "Nome da Loja": "ATALAIA COMERCIO ATACADISTA DE PRODUTOS ALIMENTICI", "Endereço": "R ODAIR MULLER DE A. MARQUES, 141    VILA MARGARIDA 11330-690 SAO VICENTE", "Latitude": -23.970797, "Longitude": -46.4074759}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 15, "Nome da Loja": "SUPERMERCADO PIRAMIDE LTDA", "Endereço": "R CORNELIO PIRES, 129    PARQUE BITARU 11330-130 SAO VICENTE", "Latitude": -23.9687271, "Longitude": -46.3959949}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 16, "Nome da Loja": "SUPERMERCADO IRMAOS COSTA LTDA", "Endereço": "RUA MARQUES DE SAO VICENTE, 65     CENTRO 11310-180 SAO VICENTE", "Latitude": -23.9691198, "Longitude": -46.3896653}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 1, "Nome da Loja": "PADARIA ESTRELA RAY", "Endereço": "AV CLODOARDO AMARAL, 1426   RIBEIROPOLIS 11714-040 PRAIA GRANDE", "Latitude": -24.0225228, "Longitude": -46.5193644999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 2, "Nome da Loja": "JIF MERCEARIA", "Endereço": "AVENIDA CLODOARDO AMARAL, 1584   RIBEIROPOLIS 11714-040 PRAIA GRANDE", "Latitude": -24.0217926, "Longitude": -46.5204834}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 3, "Nome da Loja": "CENTRO DE PRODUTOS NORDESTINOS HORTIFRUT IBERE", "Endereço": "AVENIDA ZELIA GIGLIOLI GALVES, 1063   ESMERALDA 11713-300 PRAIA GRANDE", "Latitude": -24.0285904, "Longitude": -46.5213307}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 4, "Nome da Loja": "SUPERMERCADO IRMAOS COSTA LTDA LOJA 2", "Endereço": "RUA ITIBERE DA CUNHA, 159    SAMAMBAIA 11713-160 PRAIA GRANDE", "Latitude": -24.0319401, "Longitude": -46.5248}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 5, "Nome da Loja": "JHENIFER SILVA MENINO", "Endereço": "RUA DO CONHECIMENTO, 78     MELVI 11712-250 PRAIA GRANDE", "Latitude": -24.0344196, "Longitude": -46.5301639}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 6, "Nome da Loja": "CASA DE CARNES MAGNIFICA", "Endereço": "RUA DO CONHECIMENTO, 1233   MELVI 11712-250 PRAIA GRANDE", "Latitude": -24.035902, "Longitude": -46.5313808999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 7, "Nome da Loja": "MINI MERCADO E ADEGA PONTO CERTO", "Endereço": "RUA LEOPOLDO AUGUSTO MIGUEZ, 810    MELVI 11712-170 PRAIA GRANDE", "Latitude": -24.036492, "Longitude": -46.5317705999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 8, "Nome da Loja": "AMANDA BEATRIZ SANTOS DIAS DINO", "Endereço": "RUA FREI FRANCISCO DO MONTE ALVERNE, 429    MELVI 11712-090 PRAIA GRANDE", "Latitude": -24.0364193, "Longitude": -46.5320343}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 9, "Nome da Loja": "MINI MERCADO ELISA", "Endereço": "RUA FREI FRANCISCO DO MONTE ALVERNE, 429    MELVI 11712-090 PRAIA GRANDE", "Latitude": -24.0364193, "Longitude": -46.5320343}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 10, "Nome da Loja": "ECO SUPERMERCADO", "Endereço": "AV PRESIDENTE KENNEDY, 12643  CAICARA 11707-005 PRAIA GRANDE", "Latitude": -24.0455329, "Longitude": -46.5260968}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 11, "Nome da Loja": "SAO JOSE DE CAICARA SUPERMERCADO E PADARIA LTDA", "Endereço": "AV PRESIDENTE KENNEDY, 11163  VILA CAICARA 11707-000 PRAIA GRANDE", "Latitude": -24.0409057, "Longitude": -46.5160961}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 12, "Nome da Loja": "SUPERMERCADO NOVA ESMERALDA DE PRAIA GRANDE LTDA", "Endereço": "R ZELIA GIGLIOTI GALVES, 2      BALNEARIO ESMERALDA 11713-300 PRAIA GRANDE", "Latitude": -24.0225368, "Longitude": -46.5299218}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 13, "Nome da Loja": "SUPERMERCADO NOVA ONDA LTDA", "Endereço": "AV JULIO PRESTES DE ALBUQUERQUE, 400    NOVA MIRIM 11717-110 PRAIA GRANDE", "Latitude": -24.02178, "Longitude": -46.4987209}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 14, "Nome da Loja": "COMERCIAL DE ALIMENTOS NOSSA SENHORA DA BOA HORA", "Endereço": "AV SAO JORGE, 923    VILA MIRIM 11717-270 PRAIA GRANDE", "Latitude": -24.0198801, "Longitude": -46.4959109}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 15, "Nome da Loja": "ADEVALDO SOARES DOS SANTOS", "Endereço": "RUA SETE, 178    MELVI 11712-250 PRAIA GRANDE", "Latitude": -24.0338981, "Longitude": -46.4928789}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 1, "Nome da Loja": "MAR DE TRIGO PADARIA, LANCHONETE E MERCEARIA", "Endereço": "RUA SAO BENEDITO, 165    CAICARA 11706-250 PRAIA GRANDE", "Latitude": -24.0474375, "Longitude": -46.5258553}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 2, "Nome da Loja": "SUPERMERCADO APR LTDA", "Endereço": "AV PRESIDENTE KENNEDY, 16767  REAL 11709-000 PRAIA GRANDE", "Latitude": -24.0631647, "Longitude": -46.562261}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 3, "Nome da Loja": "MDV SUPERMERCADOS LTDA", "Endereço": "R CRAVINA, 489    REAL 11708-130 PRAIA GRANDE", "Latitude": -24.0662267, "Longitude": -46.5630173}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 4, "Nome da Loja": "SUPERMERCADO APR LTDA", "Endereço": "AV PRESIDENTE KENNEDY, 18049  FLORIDA 11708-207 PRAIA GRANDE", "Latitude": -24.0706504, "Longitude": -46.5754014}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 5, "Nome da Loja": "J. SIQUEIRA & CASSIMIRO COMERCIO DE ALIMENTOS LTDA", "Endereço": "AV DOUTOR LUIZ PEREIRA BARRETO, 436    VILA ANTARTICA 11730-000 MONGAGUA", "Latitude": -24.1028221, "Longitude": -46.6418739}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 6, "Nome da Loja": "TRES PODERES SUPERMERCADO", "Endereço": "AVENIDA MARGINAL RODOVIA OESTE, 8577   BALNEARIO PRAIAMAR ITANHA 11740-000 ITANHAEM", "Latitude": -24.1442042, "Longitude": -46.7211651999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 7, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Endereço": "AV PE AFONSO MARIA RATISBONE, 4446   SUARAO 11740-000 ITANHAEM", "Latitude": -24.1614843, "Longitude": -46.7527067}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 8, "Nome da Loja": "SAITO", "Endereço": "AV CABUCU, 377    NOSSA SENHORA DO SION 11740-000 ITANHAEM", "Latitude": -24.1623599, "Longitude": -46.7625304}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 9, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Endereço": "R VEREADOR ANTONIO ATAULO, 762    PARQUE BALNEARIO ITANHAEM 11740-000 ITANHAEM", "Latitude": -24.1629236, "Longitude": -46.7828177}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 10, "Nome da Loja": "EMPORIO DFREITAS PRODUTOS NATURAIS", "Endereço": "AV RUI BARBOSA, 299    CENTRO 11740-056 ITANHAEM", "Latitude": -24.1807307, "Longitude": -46.7827765}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 11, "Nome da Loja": "SUPERMERCADO SAITO LTDA", "Endereço": "R JOAO MARIANO, 193    CENTRO 11740-000 ITANHAEM", "Latitude": -24.1839673, "Longitude": -46.7876864}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 12, "Nome da Loja": "SAITO", "Endereço": "AVENIDA JOAO BATISTA LEAL, 345    CENTRO 11740-000 ITANHAEM", "Latitude": -24.1853048, "Longitude": -46.7922694}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 13, "Nome da Loja": "SUPERMERCADO SAITO LTDA", "Endereço": "AV HARRY FORSSELL, 855    BELAS ARTES 11740-000 ITANHAEM", "Latitude": -24.189156, "Longitude": -46.8164409}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 14, "Nome da Loja": "SUPERMERCADO TRES PODERES", "Endereço": "AVENIDA FLACIDES FERREIRA, 1072   BALNEARIO GAIVOTAS 11740-000 ITANHAEM", "Latitude": -24.2391698, "Longitude": -46.8964868}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 1, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Endereço": "AV PAULICEIA, 571    LARANJEIRAS 07744-025 CAIEIRAS", "Latitude": -23.394453, "Longitude": -46.7153684}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 2, "Nome da Loja": "SM.FEDERZONI 2", "Endereço": "ROD PRESIDENTE TANCREDO DE ALMEIDA NEVES, 2170   SERPA 07700-000 CAIEIRAS", "Latitude": -23.3509744, "Longitude": -46.7433281}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 3, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Endereço": "AV DAS ARAUCAREAS (JD EUCALIPTOS), 102    SERPA 07716-200 CAIEIRAS", "Latitude": -23.3432624, "Longitude": -46.7434669}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 4, "Nome da Loja": "SM. FEDERZONI 1", "Endereço": "R PROF CARVALHO PINTO, 149    CENTRO 07700-000 CAIEIRAS", "Latitude": -23.3306941, "Longitude": -46.7294996}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 5, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Endereço": "AV DOS EXPEDICIONARIOS, 77     COMPANHIA FAZENDA BELEM 07803-010 FRANCO DA ROCHA", "Latitude": -23.3290542, "Longitude": -46.7276494}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 6, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Endereço": "R JOSE DE SOUZA, 25     PARQUE SANTA DELFA 07809-120 FRANCO DA ROCHA", "Latitude": -23.327054, "Longitude": -46.7524679}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 7, "Nome da Loja": "MERCADO PARQUE PAULISTA", "Endereço": "AV SAO PAULO, 1835   PARQUE PAULISTA 07903-200 FRANCISCO MORATO", "Latitude": -23.2918239, "Longitude": -46.7395382}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 8, "Nome da Loja": "SUPERMERCADO FEDERZONI", "Endereço": "R GERONIMO C GARCIA, 550    CENTRO 07985-170 FRANCISCO MORATO", "Latitude": -23.2877709, "Longitude": -46.7030695}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 9, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Endereço": "AV DOMINGO ALONSO LOPEZ, 136    ALTOS DE JORDANESIA (JORD 07786-495 CAJAMAR", "Latitude": -23.3351471, "Longitude": -46.8347444}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 10, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Endereço": "AV JORDANO MENDES, 444    JORDANESIA (JORDANESIA) 07776-480 CAJAMAR", "Latitude": -23.3353946, "Longitude": -46.8374416}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 1, "Nome da Loja": "SANDRA", "Endereço": "AV ALEXIOS JAFET, 1375   JDM IPANEMA 05145-000 SAO PAULO", "Latitude": -23.5038602, "Longitude": -46.7186146}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 2, "Nome da Loja": "B.B DISTRIBUIDORA", "Endereço": "AV MOFARREJ, 1504   VILA LEOPOLDINA 05311-000 SAO PAULO", "Latitude": -23.52951, "Longitude": -46.741858}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "PC DICRAN ECHREFIAN, 12     PRESIDENTE ALTINO 06210-010 OSASCO", "Latitude": -23.5277798, "Longitude": -46.7679185}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 4, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "R OSMAR DE SOUZA FERREIRA, 484    BARONESA 06266-120 OSASCO", "Latitude": -23.4939109, "Longitude": -46.7874591}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 5, "Nome da Loja": "NASCIMENTO&SILVA COMERCIO DE PRODUTOS ALIMENTIOS", "Endereço": "RUA PRESIDENTE COSTA E SILVA, 1659   JARDIM HELENA MARIA 06253-000 OSASCO", "Latitude": -23.4995529, "Longitude": -46.796749}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 6, "Nome da Loja": "SUPERMERCADO KIBE", "Endereço": "AV FELIPPO STURBA, 111    JARDIM ANHANGUERA 05267-200 SAO PAULO", "Latitude": -23.4457187, "Longitude": -46.7921908}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 7, "Nome da Loja": "KIBE ATACADISTA DE ALIMENTOS LTDA", "Endereço": "R LEOPOLDO DE PASSOS LIMA, 72     JARDIM SANTA FE (ZONA OES 05271-000 SAO PAULO", "Latitude": -23.4305141, "Longitude": -46.7877742}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 8, "Nome da Loja": "MERCADINHO ROBERTO KIBE LTDA - ME", "Endereço": "R LEOPOLDO DE PASSOS LIMA, 778    JD SANTA FE 05271-000 SAO PAULO", "Latitude": -23.4282631, "Longitude": -46.7944118}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 9, "Nome da Loja": "MERCADO FENIX", "Endereço": "R YOLANDA MAHALY, 152    COLINAS DA ANHANGUERA 06537-060 SANTANA DE PARNAIBA", "Latitude": -23.4272488, "Longitude": -46.824985}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 10, "Nome da Loja": "ENCANTO", "Endereço": "R DI CAVALCANTI, 302    COLINAS ANHANGUERA 06537-085 SANTANA DE PARNAIBA", "Latitude": -23.4277168, "Longitude": -46.8263433}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 11, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Endereço": "AV JORDANO MENDES, 588    JORDANESIA (JORDANESIA) 07776-400 CAJAMAR", "Latitude": -23.3366525, "Longitude": -46.837294}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 1, "Nome da Loja": "ZATTAO", "Endereço": "AV MIGUEL DE CASTRO, 586    VILA ZAT 02950-000 SAO PAULO", "Latitude": -23.4819362, "Longitude": -46.7179359}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 2, "Nome da Loja": "SUPERMERCADO LOPES & LUMA LTDA", "Endereço": "AV COMENDADOR FEIZ ZARZUR, 1222   JARDIM CIDADE PIRITUBA 02942-000 SAO PAULO", "Latitude": -23.4767157, "Longitude": -46.7221071}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 3, "Nome da Loja": "VELEJAR SUPERMERCADO LTDA", "Endereço": "R SAVERIO VALENTE, 23     PARQUE NACOES UNIDAS 02996-120 SAO PAULO", "Latitude": -23.4414737, "Longitude": -46.7372609}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 4, "Nome da Loja": "COMERCIAL SHITSU", "Endereço": "AV ANTONIO C COSTA, 953    JD BELA VISTA 06053-014 OSASCO", "Latitude": -23.5485536, "Longitude": -46.783905}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 5, "Nome da Loja": "MERCADINHO AGOSTINHO", "Endereço": "R MARIA QUINTINA DOS SANTOS, 618    JARDIM CALIFORNIA 06122-190 OSASCO", "Latitude": -23.543336, "Longitude": -46.7969614999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 6, "Nome da Loja": "SUPERMERCADO JAPAO", "Endereço": "AV JOAO DE ANDRADE, 1113   JD SANTO ANTONIO 06132-002 OSASCO", "Latitude": -23.5547882, "Longitude": -46.8013753}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 7, "Nome da Loja": "SUPERMERCADO BRUNO - LOJA II", "Endereço": "EST ONDA VERDE, 1089   PARQUE SANTA TEREZA 06341-170 CARAPICUIBA", "Latitude": -23.5699419, "Longitude": -46.8194206999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 8, "Nome da Loja": "SUPERMERCADO BRUNO - LOJA III", "Endereço": "R ITAJUBA, 363    PARQUE SANTA TERESA 06341-160 CARAPICUIBA", "Latitude": -23.5698129, "Longitude": -46.8240366}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 9, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "R EDUARDO AUGUSTO MESQUITA, 1147   PARQUE SANTA TERESA 06340-380 CARAPICUIBA", "Latitude": -23.566157, "Longitude": -46.8236019}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 10, "Nome da Loja": "SUPERMERCADO BRUNO", "Endereço": "AV PLUTAO, 583    JARDIM NOVO HORIZONTE 06341-650 CARAPICUIBA", "Latitude": -23.5743248, "Longitude": -46.8170748999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 11, "Nome da Loja": "SUPERMERCADO LISBOA", "Endereço": "R MARIO QUINTANA, 260    RECANTO DAS ROSAS 06149-260 OSASCO", "Latitude": -23.580289, "Longitude": -46.8143114}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 1, "Nome da Loja": "MMM SUPERMERCADO LTDA", "Endereço": "R AGOSTINHO NAVARRO, 170    CONCEICAO 06140-000 OSASCO", "Latitude": -23.5781938, "Longitude": -46.7980227}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 2, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "EST DO COPIUVA, 1985   VILA DA OPORTUNIDADE 06330-000 CARAPICUIBA", "Latitude": -23.5543838, "Longitude": -46.8261654}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "AV INOCENCIO SERAFICO, 1894   VILA SILVA RIBEIRO 06380-021 CARAPICUIBA", "Latitude": -23.5488256, "Longitude": -46.8348200999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 4, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS JAPAO LTDA", "Endereço": "EST VELHA DE ITAPEVI, 4296   PARK DAS NACOES 06444-000 BARUERI", "Latitude": -23.5407472, "Longitude": -46.8826721999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 5, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "AV CARMINE GRAGNANO, 798    CENTRO 06600-010 JANDIRA", "Latitude": -23.5298406, "Longitude": -46.8981268}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 6, "Nome da Loja": "N.S. LAR SUPERMERCADO LTDA", "Endereço": "R CECILIA PEREIRA ALVES, 105    JARDIM VITAPOLIS 06693-360 ITAPEVI", "Latitude": -23.5345602, "Longitude": -46.9259633}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 7, "Nome da Loja": "SANZITO SUPERMERCADOS LTDA", "Endereço": "R LEOPOLDINA CAMARGO, 260    VILA DR.CARDOSO 06653-040 ITAPEVI", "Latitude": -23.5460735, "Longitude": -46.9331156999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 8, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "ROD ENGENHEIRO RENE BENEDITO DA SILVA, 668    SAO JOAO 06683-000 ITAPEVI", "Latitude": -23.5473865, "Longitude": -46.9427536}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 9, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "R MAGALI WESSEL, 25     JARDIM ITACOLOMI 06660-750 ITAPEVI", "Latitude": -23.5449841, "Longitude": -46.956073}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 10, "Nome da Loja": "N.S. LAR SUPERMERCADO LTDA", "Endereço": "AVENIDA LIZETE GERALDA CALANDRINI GUIMARAES, 57     PARQUE SUBURBANO 06663-650 ITAPEVI", "Latitude": -23.5645276, "Longitude": -46.9324829}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 1, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS SUPER COTIA LTDA", "Endereço": "AVENIDA DO RIO PEQUENO, 1563   RIO PEQUENO 05379-000 SAO PAULO", "Latitude": -23.5670012, "Longitude": -46.7538444}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 2, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "AV CARLOS LACERDA, 2170   PIRAJUSSARA 05789-001 SAO PAULO", "Latitude": -23.6385813, "Longitude": -46.7795950999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "R JOAO DA CRUZ E SOUSA, 5      JARDIM DAS ROSAS (ZONA SU 05893-000 SAO PAULO", "Latitude": -23.6587634, "Longitude": -46.7895018}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 4, "Nome da Loja": "SUPERMERCADOS BANDEIRA LTDA.", "Endereço": "PRACA DAS BANDEIRAS, 17     CENTRO 06850-005 ITAPECERICA DA SERRA", "Latitude": -23.7187514, "Longitude": -46.851248}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 5, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS SUPER COTIA LTDA", "Endereço": "EST PADRE INACIO, 720    JARDIM PETROPOLIS 06700-450 COTIA", "Latitude": -23.6180716, "Longitude": -46.9325576}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 6, "Nome da Loja": "FAMILIA SUPERMERCADOS 1 LTDA", "Endereço": "RUA BATISTA CEPELOS, 25     CENTRO 06700-130 COTIA", "Latitude": -23.603513, "Longitude": -46.9314958}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 7, "Nome da Loja": "FAMILIA SUPERMERCADOS LTDA", "Endereço": "AVENIDA PROFESSOR JOAQUIM BARRETO, 1133   CENTRO 06700-170 COTIA", "Latitude": -23.6059725, "Longitude": -46.9422143}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 8, "Nome da Loja": "RAI ATACADISTA", "Endereço": "R PINHAL, 183    JARDIM SABIA 06716-575 COTIA", "Latitude": -23.6007443, "Longitude": -46.8990479}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 9, "Nome da Loja": "SP II", "Endereço": "AV JOSE GIORGI, 698    GRANJA VIANA II 06707-100 COTIA", "Latitude": -23.5832252, "Longitude": -46.8658635}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 10, "Nome da Loja": "SUPERMERCADO SUPER CITY SP II LTDA", "Endereço": "AV JOSE GIORGI, 698    GRANJA VIANA II 06707-100 COTIA", "Latitude": -23.5832252, "Longitude": -46.8658635}];
-
-const COLORS = { 1: '#1565c0', 2: '#2e7d32', 3: '#e65100', 4: '#616161', 5: '#f9a825' };
-const DAY_NAMES = { 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta' };
-const START_POINTS = {
-  'CLAITON DOS SANTOS BATISTA': { lat: -24.0239813, lon: -46.5144143, label: 'Praia Grande' },
-  'JULIVAL FERRARI RAMOS': { lat: -23.4077722, lon: -46.353613, label: 'Arujá' }
-};
-
-// Filter out vendor names appearing as stores and re-order
-const VENDOR_NAMES = [...new Set(DATA.map(d => d.Vendedor))];
-const CLEAN_DATA = DATA.filter(d => !VENDOR_NAMES.includes(d['Nome da Loja']));
-CLEAN_DATA.forEach(d => {
-  const group = CLEAN_DATA.filter(x => x.Vendedor === d.Vendedor && x.Dia === d.Dia);
-  group.sort((a,b) => a.Ordem - b.Ordem);
-  group.forEach((item, idx) => item.Ordem = idx + 1);
-});
-
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const toggle = document.getElementById('sidebarToggle');
-  const isOpen = sidebar.classList.contains('mobile-open');
-  if (isOpen) {
-    sidebar.classList.remove('mobile-open');
-    toggle.style.display = '';
-  } else {
-    sidebar.classList.add('mobile-open');
-    toggle.style.display = 'none';
-  }
-  if (typeof map !== 'undefined') setTimeout(() => map.invalidateSize(), 350);
+const DATA = [{"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 1, "Nome da Loja": "R NORABELE GUARUJA", "Endereço": "R JARANAS, 23     BAL.PR.PERNAMBUCO 11444-700 GUARUJA", "Latitude": -23.9747424, "Longitude": -46.1919474}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 2, "Nome da Loja": "PASCALE, PETRELLI & CIA LTDA", "Endereço": "AV ANTENOR PIMENTEL, 0      MORRINHO 11495-000 GUARUJA", "Latitude": -23.9616687, "Longitude": -46.2420246999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 3, "Nome da Loja": "MERCEARIA D. A. BASTOS - EIRELI", "Endereço": "R ANTONIO BARACAL, 561    MORRINHOS I 11495-020 GUARUJA", "Latitude": -23.9612391, "Longitude": -46.2525096}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 4, "Nome da Loja": "ESTRELA DO LITORAL ALIMENTOS LTDA", "Endereço": "R DOS GERANIOS, 136    JARDIM PRIMAVERA 11432-330 GUARUJA", "Latitude": -23.9903579, "Longitude": -46.2703871}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 5, "Nome da Loja": "SUPER MERCADO GOL LTDA", "Endereço": "AV ANTONIO MIGUEL DOS SANTOS, 456    VILA SANTA ROSA 11431-050 GUARUJA", "Latitude": -23.9975448, "Longitude": -46.2785527}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 6, "Nome da Loja": "N J ARAUJO FEITOSA", "Endereço": "AV DOS CAICARAS, 760    JARDIM LAS PALMAS 11420-440 GUARUJA", "Latitude": -24.0043113, "Longitude": -46.2737152}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 7, "Nome da Loja": "SUPER MERCADO JOIA LIMITADA", "Endereço": "R PETROPOLIS, 291    BARRA FUNDA 11410-300 GUARUJA", "Latitude": -23.9959045, "Longitude": -46.2605061999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 8, "Nome da Loja": "PASCALE & PASCALE SUPERMERCADO LTDA - ME", "Endereço": "AV ANTONIO CORREA, 524    VILA LYGIA 11430-030 GUARUJA", "Latitude": -23.9944837, "Longitude": -46.2891953}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 9, "Nome da Loja": "SUPER MERCADO JOIA LIMITADA", "Endereço": "AV ADEMAR DE BARROS, 3255   VILA LIGIA 11430-005 GUARUJA", "Latitude": -23.989775, "Longitude": -46.2890553}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 10, "Nome da Loja": "CMR COMERCIO DE ALIMENTOS LTDA", "Endereço": "AV DOS BANCARIOS, 85     PONTA DA PRAIA 11030-301 SANTOS", "Latitude": -23.9873292, "Longitude": -46.3021825}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 11, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "AV AFFONSO PENNA, 622    APARECIDA 11020-002 SANTOS", "Latitude": -23.9741344, "Longitude": -46.3021851}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 12, "Nome da Loja": "SUPERMERCADO VARANDAS E NAVAS LTDA", "Endereço": "AVENIDA AFFONSO PENNA, 622    APARECIDA 11020-002 SANTOS", "Latitude": -23.9741344, "Longitude": -46.3021851}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 13, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "R ALEXANDRE MARTINS, 125    APARECIDA 11025-201 SANTOS", "Latitude": -23.9749868, "Longitude": -46.309686}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 14, "Nome da Loja": "LATICINIOS ILHA DE GUARUJA LTDA", "Endereço": "AV SANTOS DUMONT, 1125   SITIO PAE CARA 11460-003 GUARUJA", "Latitude": -23.9530356, "Longitude": -46.2927087}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 15, "Nome da Loja": "CMR COMERCIO DE ALIMENTOS LTDA", "Endereço": "AVENIDA SANTOS DUMONT - DE 2 A 762 - LADO PAR, 474    SITIO PAECARA (VICENTE DE 11460-000 GUARUJA", "Latitude": -23.9532108, "Longitude": -46.2923433}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 16, "Nome da Loja": "ANDRADE COMERCIO DE PRODUTOS ALIMENTICIOS LTDA - E", "Endereço": "R JULIO PEDRO PONTES, 207    VICENTE DE CARVALHO 11462-300 GUARUJA", "Latitude": -23.9552903, "Longitude": -46.2888413}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 17, "Nome da Loja": "EOM COMERCIO DE ALIMENTOS LTDA", "Endereço": "R PRIMEIRO DE JUNHO, 200    SITIO PAECARA (VICENTE DE 11460-240 GUARUJA", "Latitude": -23.9469084, "Longitude": -46.2883328}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 1, "Nome da Loja": "A.D.F. - SOUSA LTDA.", "Endereço": "AV AFONSO PENA, 336    MACUCO 11020-000 SANTOS", "Latitude": -23.9655341, "Longitude": -46.3099178999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 2, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "AV SIQUEIRA CAMPOS, 585    EMBARE 11045-201 SANTOS", "Latitude": -23.9691495, "Longitude": -46.3197033999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 3, "Nome da Loja": "SUPERMERCADO LAS PALMAS LTDA.", "Endereço": "AVENIDA CONSELHEIRO NEBIAS, 859    BOQUEIRAO 11045-003 SANTOS", "Latitude": -23.9641666, "Longitude": -46.3233459}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 4, "Nome da Loja": "R M G COMERCIO DE ALIMENTOS LTDA.", "Endereço": "R CARVALHO DE MENDONCA, 336    CAMPO GRANDE 11070-101 SANTOS", "Latitude": -23.9529274, "Longitude": -46.334716}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 5, "Nome da Loja": "SUPERMERCADO FRANSUE LTDA", "Endereço": "EVARISTO DA VEIGA , 224    CAMPO GRANDE 11075-661 SANTOS", "Latitude": -23.9576904, "Longitude": -46.3414606}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 6, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "AV SENADOR PINHEIRO MACHADO, 643    CAMPO GRANDE 11075-003 SANTOS", "Latitude": -23.9559797, "Longitude": -46.3442474}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 7, "Nome da Loja": "MINIMERCADO E PADARIA BABALOO LTDA", "Endereço": "R DOM DUARTE LEOPOLDO E SILVA, 65     MARAPE 11070-130 SANTOS", "Latitude": -23.9547224, "Longitude": -46.3461262}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 8, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "AVENIDA DOUTOR MOURA RIBEIRO - LADO PAR, 116    MARAPE 11070-060 SANTOS", "Latitude": -23.9591621, "Longitude": -46.3482415}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 9, "Nome da Loja": "MERCADO M. RODRIGUES FILHOS LTDA", "Endereço": "AV SANTISTA, 623    MORRO NOVA CINTRA 11080-000 SANTOS", "Latitude": -23.9445624, "Longitude": -46.3516065}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 10, "Nome da Loja": "MERCADO MARTINHO RODRIGUES LTDA - EPP", "Endereço": "R DOIS, 947    MORRO SAO BENTO 11082-310 SANTOS", "Latitude": -23.939518, "Longitude": -46.3500237}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 11, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Endereço": "R PIO XII, 82     SABOO 11085-050 SANTOS", "Latitude": -23.9326681, "Longitude": -46.3471943}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 12, "Nome da Loja": "MINIMERCADO E PADARIA ALMEIDA LTDA", "Endereço": "R FLAMINIO LEVY, 11     SABOO 11085-080 SANTOS", "Latitude": -23.9317849, "Longitude": -46.3492376}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 13, "Nome da Loja": "SUPERMERCADO FRANSUE LTDA", "Endereço": "R DOMINGOS JOSE MARTINS, 170    VL SAO JORGE 11085-800 SANTOS", "Latitude": -23.9487135, "Longitude": -46.366809}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 14, "Nome da Loja": "SUPERMERCADO BARROS LTDA", "Endereço": "PC JOSE DE OLIVEIRA LOPES, 86     JD CASTELO 11088-190 SANTOS", "Latitude": -23.9431826, "Longitude": -46.3807392999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 15, "Nome da Loja": "CASA LUANDA SUPERMERCADOS LTDA", "Endereço": "AV ANTONIO EMERICK, 335    VILA VALENCA 11390-001 SAO VICENTE", "Latitude": -23.9621618, "Longitude": -46.3796848}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 16, "Nome da Loja": "ULISSES ALVES DOMINGUES CIA LTDA", "Endereço": "R XV DE NOVEMBRO, 537    CENTRO 11310-400 SAO VICENTE", "Latitude": -23.9640252, "Longitude": -46.385889}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 1, "Nome da Loja": "SUPERMERCADO IRMAOS COSTA LTDA", "Endereço": "RUA MARQUES DE SAO VICENTE, 65     CENTRO 11310-180 SAO VICENTE", "Latitude": -23.9691198, "Longitude": -46.3896653}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 2, "Nome da Loja": "SUPERMERCADO PIRAMIDE LTDA", "Endereço": "R CORNELIO PIRES, 129    PARQUE BITARU 11330-130 SAO VICENTE", "Latitude": -23.9687271, "Longitude": -46.3959949}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 3, "Nome da Loja": "SUPERMERCADO TALISMA DA VILA LTDA", "Endereço": "R MONTE BELVEDERE, 610    VILA MARGARIDA 11330-580 SAO VICENTE", "Latitude": -23.9670939, "Longitude": -46.4036763999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 4, "Nome da Loja": "SUPERMERCADO TALISMA DE SAO VICENTE LTDA", "Endereço": "AV NACOES UNIDAS, 865    VILA MARGARIDA 11330-300 SAO VICENTE", "Latitude": -23.9664144, "Longitude": -46.4058253}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 5, "Nome da Loja": "ATALAIA COMERCIO ATACADISTA DE PRODUTOS ALIMENTICI", "Endereço": "R ODAIR MULLER DE A. MARQUES, 141    VILA MARGARIDA 11330-690 SAO VICENTE", "Latitude": -23.970797, "Longitude": -46.4074759}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 6, "Nome da Loja": "ANTONIO MIRAMOTO & FILHO LTDA", "Endereço": "PC MATEO BEI, 93     JOQUEI CLUBE 11360-260 SAO VICENTE", "Latitude": -23.947969, "Longitude": -46.398074}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 7, "Nome da Loja": "MINI MERCADO ESPAGUETE LTDA", "Endereço": "AV PROFESSOR OLAVO PAULA BORGES, 45     SITIO DO CAMPO 11725-410 PRAIA GRANDE", "Latitude": -23.9945534, "Longitude": -46.4182083}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 8, "Nome da Loja": "PANIFICADORA POMPEIA LIMITADA - EPP", "Endereço": "AV IRMAOS ADORNO, 449    SITIO DO CAMPO 11725-320 PRAIA GRANDE", "Latitude": -23.9962677, "Longitude": -46.4221399}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 9, "Nome da Loja": "R DE S LAURETTI SUPERMERCADO", "Endereço": "R ANTONIO CANDIDO DA SILVA, 664    VILA SONIA 11722-000 PRAIA GRANDE", "Latitude": -24.0007038, "Longitude": -46.4461828}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 10, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Endereço": "R AUGUSTO RIBEIRO PACHECO, 438    ANTARTICA 11721-110 PRAIA GRANDE", "Latitude": -24.0117872, "Longitude": -46.4523017}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 11, "Nome da Loja": "61.832.736 LINDINALVA DOS SANTOS", "Endereço": "AVENIDA SAO FRANCISCO DE ASSIS, 4136   TUPIRY 11724-475 PRAIA GRANDE", "Latitude": -24.0129954, "Longitude": -46.4708367}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 12, "Nome da Loja": "MENEZES & OLIVEIRA MERCADO, ACOUGUE E PADARIA LTDA", "Endereço": "AV SAO FRANCISCO DE ASSIS, 3685   TUPIRY 11724-475 PRAIA GRANDE", "Latitude": -24.0120558, "Longitude": -46.4709772}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 13, "Nome da Loja": "JACINTO & SILVA MINIMERCADO LTDA", "Endereço": "AV SAO FRANCISCO DE ASSIS, 3834   TUPIRY 11724-475 PRAIA GRANDE", "Latitude": -24.0111637, "Longitude": -46.4711676}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 14, "Nome da Loja": "LAURITA PEREIRA DA SILVA OLIVEIRA", "Endereço": "R NILCEIA APARECIDA DE CAMARGO, 66     SAMARITA 11345-595 SAO VICENTE", "Latitude": -23.994903, "Longitude": -46.4753639}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 15, "Nome da Loja": "ATALAIA COMERCIO ATACADISTA DE PRODUTOS ALIMENTICI", "Endereço": "AV QUARENTENARIO, 310    JARDIM IRMA DOLORES 11347-520 SAO VICENTE", "Latitude": -23.9863801, "Longitude": -46.4680835}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 16, "Nome da Loja": "SUPERMERCADO FIGUEROA LTDA", "Endereço": "AV MARECHAL MALLET, 532    FORTE 11700-400 PRAIA GRANDE", "Latitude": -24.0124027, "Longitude": -46.4013875}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 1, "Nome da Loja": "ANDREIA CHAVES DE LIRA 36585752805", "Endereço": "R FRANCISCO CONRADO DOS SANTOS, 650    ANHANGUERA 11718-050 PRAIA GRANDE", "Latitude": -24.019254, "Longitude": -46.4805494}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 2, "Nome da Loja": "JOSE ALESSON SILVA DE JESUS MINIMERCADO", "Endereço": "AV SAO JORGE, 923    VILA MIRIM 11717-270 PRAIA GRANDE", "Latitude": -24.0198801, "Longitude": -46.4959109}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 3, "Nome da Loja": "SUPERMERCADO NOVA ONDA LTDA", "Endereço": "AV JULIO PRESTES DE ALBUQUERQUE, 400    NOVA MIRIM 11717-110 PRAIA GRANDE", "Latitude": -24.02178, "Longitude": -46.4987209}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 4, "Nome da Loja": "ADEVALDO SOARES DOS SANTOS", "Endereço": "RUA SETE, 178    MELVI 11712-250 PRAIA GRANDE", "Latitude": -24.0338981, "Longitude": -46.4928789}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 5, "Nome da Loja": "SAO JOSE DE CAICARA SUPERMERCADO E PADARIA LTDA", "Endereço": "AV PRESIDENTE KENNEDY, 11163  VILA CAICARA 11707-000 PRAIA GRANDE", "Latitude": -24.0409057, "Longitude": -46.5160961}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 6, "Nome da Loja": "GUILHERME BONERT ALVES 43710604800", "Endereço": "AV PRESIDENTE KENNEDY, 12643  CAICARA 11707-005 PRAIA GRANDE", "Latitude": -24.0455329, "Longitude": -46.5260968}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 7, "Nome da Loja": "MAR DE TRIGO PADARIA, LANCHONETE E MERCEARIA LTDA", "Endereço": "RUA SAO BENEDITO, 165    CAICARA 11706-250 PRAIA GRANDE", "Latitude": -24.0474375, "Longitude": -46.5258553}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 8, "Nome da Loja": "COMERCIO VAREJISTA DE CARNES, ACOUGUES MAGNIFICA L", "Endereço": "RUA DO CONHECIMENTO, 1233   MELVI 11712-250 PRAIA GRANDE", "Latitude": -24.035902, "Longitude": -46.5313808999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 9, "Nome da Loja": "JHENIFER SILVA MENINO", "Endereço": "RUA DO CONHECIMENTO, 78     MELVI 11712-250 PRAIA GRANDE", "Latitude": -24.0344196, "Longitude": -46.5301639}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 10, "Nome da Loja": "SUPERMERCADO IRMAOS COSTA LTDA", "Endereço": "RUA ITIBERE DA CUNHA, 159    SAMAMBAIA 11713-160 PRAIA GRANDE", "Latitude": -24.0319401, "Longitude": -46.5248}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 11, "Nome da Loja": "CASA DO NORTE EMPORIO OLI. LTDA HORTIFRUT IBERE", "Endereço": "AVENIDA ZELIA GIGLIOLI GALVES, 1063   ESMERALDA 11713-300 PRAIA GRANDE", "Latitude": -24.0285904, "Longitude": -46.5213307}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 12, "Nome da Loja": "38.083.843 IASMIM SILVA BARBOSA", "Endereço": "AV CLODOARDO AMARAL, 1426   RIBEIROPOLIS 11714-040 PRAIA GRANDE", "Latitude": -24.0225228, "Longitude": -46.5193644999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 13, "Nome da Loja": "JIF MERCEARIA", "Endereço": "AVENIDA CLODOARDO AMARAL, 1584   RIBEIROPOLIS 11714-040 PRAIA GRANDE", "Latitude": -24.0217926, "Longitude": -46.5204834}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 14, "Nome da Loja": "SUPERMERCADO NOVA ESMERALDA DE PRAIA GRANDE LTDA", "Endereço": "R ZELIA GIGLIOTI GALVES, 2      BALNEARIO ESMERALDA 11713-300 PRAIA GRANDE", "Latitude": -24.0225368, "Longitude": -46.5299218}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 15, "Nome da Loja": "SUPERMERCADO FLOR DO PARQUE LTDA", "Endereço": "AV ESMERALDO SOARES TARQUINIO DE CAMPOS FILHO, 113    PARQUE DAS BANDEIRAS 11346-000 SAO VICENTE", "Latitude": -23.9856128, "Longitude": -46.4835309}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 16, "Nome da Loja": "SUPERMERCADO APR LTDA", "Endereço": "AV DOUTOR ESMERALDO SOARES TARQUINIO DE CAMPOS FIL, 752    PARQUE DAS BANDEIRAS 11346-000 SAO VICENTE", "Latitude": -23.9868072, "Longitude": -46.4823134}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 1, "Nome da Loja": "RONIVALDO CARDOSO DOS SANTOS", "Endereço": "RUA LEOPOLDO AUGUSTO MIGUEZ, 810    MELVI 11712-170 PRAIA GRANDE", "Latitude": -24.036492, "Longitude": -46.5317705999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 2, "Nome da Loja": "AMANDA BEATRIZ SANTOS DIAS DINO\n", "Endereço": "RUA FREI FRANCISCO DO MONTE ALVERNE, 429    MELVI 11712-090 PRAIA GRANDE", "Latitude": -24.0364193, "Longitude": -46.5320343}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 3, "Nome da Loja": "AMANDA BEATRIZ SANTOS DIAS DINO 41873853807", "Endereço": "RUA FREI FRANCISCO DO MONTE ALVERNE, 429    MELVI 11712-090 PRAIA GRANDE", "Latitude": -24.0364193, "Longitude": -46.5320343}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 4, "Nome da Loja": "SUPERMERCADO APR LTDA", "Endereço": "AV PRESIDENTE KENNEDY, 16767  REAL 11709-000 PRAIA GRANDE", "Latitude": -24.0631647, "Longitude": -46.562261}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 5, "Nome da Loja": "MDV SUPERMERCADOS LTDA", "Endereço": "R CRAVINA, 489    REAL 11708-130 PRAIA GRANDE", "Latitude": -24.0662267, "Longitude": -46.5630173}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 6, "Nome da Loja": "SUPERMERCADO APR LTDA", "Endereço": "AV PRESIDENTE KENNEDY, 18049  FLORIDA 11708-207 PRAIA GRANDE", "Latitude": -24.0706504, "Longitude": -46.5754014}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 7, "Nome da Loja": "J. SIQUEIRA & CASSIMIRO COMERCIO DE ALIMENTOS LTDA", "Endereço": "AV DOUTOR LUIZ PEREIRA BARRETO, 436    VILA ANTARTICA 11730-000 MONGAGUA", "Latitude": -24.1028221, "Longitude": -46.6418739}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 8, "Nome da Loja": "ALAIDE FERNANDES NOVAIS PINTO", "Endereço": "AVENIDA MARGINAL RODOVIA OESTE, 8577   BALNEARIO PRAIAMAR ITANHA 11740-000 ITANHAEM", "Latitude": -24.1442042, "Longitude": -46.7211651999999}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 9, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Endereço": "AV PE AFONSO MARIA RATISBONE, 4446   SUARAO 11740-000 ITANHAEM", "Latitude": -24.1614843, "Longitude": -46.7527067}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 10, "Nome da Loja": "SUPERMERCADOS SAITO LTDA", "Endereço": "AV CABUCU, 377    NOSSA SENHORA DO SION 11740-000 ITANHAEM", "Latitude": -24.1623599, "Longitude": -46.7625304}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 11, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Endereço": "R VEREADOR ANTONIO ATAULO, 762    PARQUE BALNEARIO ITANHAEM 11740-000 ITANHAEM", "Latitude": -24.1629236, "Longitude": -46.7828177}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 12, "Nome da Loja": "IRACILDA DIAS SUPERMERCADOS LTDA", "Endereço": "AV RUI BARBOSA, 299    CENTRO 11740-056 ITANHAEM", "Latitude": -24.1807307, "Longitude": -46.7827765}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 13, "Nome da Loja": "SUPERMERCADOS SAITO LTDA", "Endereço": "R JOAO MARIANO, 193    CENTRO 11740-000 ITANHAEM", "Latitude": -24.1839673, "Longitude": -46.7876864}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 14, "Nome da Loja": "SUPERMERCADOS SAITO LTDA", "Endereço": "AVENIDA JOAO BATISTA LEAL, 345    CENTRO 11740-000 ITANHAEM", "Latitude": -24.1853048, "Longitude": -46.7922694}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 15, "Nome da Loja": "SUPERMERCADOS SAITO LTDA", "Endereço": "AV HARRY FORSSELL, 855    BELAS ARTES 11740-000 ITANHAEM", "Latitude": -24.189156, "Longitude": -46.8164409}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 16, "Nome da Loja": "SUPERMERCADO TRES PODERES LTDA", "Endereço": "AVENIDA FLACIDES FERREIRA, 1072   BALNEARIO GAIVOTAS 11740-000 ITANHAEM", "Latitude": -24.2391698, "Longitude": -46.8964868}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 1, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Endereço": "AV PAULICEIA, 571    LARANJEIRAS 07744-025 CAIEIRAS", "Latitude": -23.394453, "Longitude": -46.7153684}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 2, "Nome da Loja": "SM.FEDERZONI 2", "Endereço": "ROD PRESIDENTE TANCREDO DE ALMEIDA NEVES, 2170   SERPA 07700-000 CAIEIRAS", "Latitude": -23.3509744, "Longitude": -46.7433281}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 3, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Endereço": "AV DAS ARAUCAREAS (JD EUCALIPTOS), 102    SERPA 07716-200 CAIEIRAS", "Latitude": -23.3432624, "Longitude": -46.7434669}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 4, "Nome da Loja": "SM. FEDERZONI 1", "Endereço": "R PROF CARVALHO PINTO, 149    CENTRO 07700-000 CAIEIRAS", "Latitude": -23.3306941, "Longitude": -46.7294996}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 5, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Endereço": "AV DOS EXPEDICIONARIOS, 77     COMPANHIA FAZENDA BELEM 07803-010 FRANCO DA ROCHA", "Latitude": -23.3290542, "Longitude": -46.7276494}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 6, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Endereço": "R JOSE DE SOUZA, 25     PARQUE SANTA DELFA 07809-120 FRANCO DA ROCHA", "Latitude": -23.327054, "Longitude": -46.7524679}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 7, "Nome da Loja": "MERCADO PARQUE PAULISTA", "Endereço": "AV SAO PAULO, 1835   PARQUE PAULISTA 07903-200 FRANCISCO MORATO", "Latitude": -23.2918239, "Longitude": -46.7395382}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 8, "Nome da Loja": "SUPERMERCADO FEDERZONI", "Endereço": "R GERONIMO C GARCIA, 550    CENTRO 07985-170 FRANCISCO MORATO", "Latitude": -23.2877709, "Longitude": -46.7030695}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 9, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Endereço": "AV DOMINGO ALONSO LOPEZ, 136    ALTOS DE JORDANESIA (JORD 07786-495 CAJAMAR", "Latitude": -23.3351471, "Longitude": -46.8347444}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 10, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Endereço": "AV JORDANO MENDES, 444    JORDANESIA (JORDANESIA) 07776-480 CAJAMAR", "Latitude": -23.3353946, "Longitude": -46.8374416}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 1, "Nome da Loja": "SANDRA", "Endereço": "AV ALEXIOS JAFET, 1375   JDM IPANEMA 05145-000 SAO PAULO", "Latitude": -23.5038602, "Longitude": -46.7186146}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 2, "Nome da Loja": "B.B DISTRIBUIDORA", "Endereço": "AV MOFARREJ, 1504   VILA LEOPOLDINA 05311-000 SAO PAULO", "Latitude": -23.52951, "Longitude": -46.741858}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "PC DICRAN ECHREFIAN, 12     PRESIDENTE ALTINO 06210-010 OSASCO", "Latitude": -23.5277798, "Longitude": -46.7679185}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 4, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "R OSMAR DE SOUZA FERREIRA, 484    BARONESA 06266-120 OSASCO", "Latitude": -23.4939109, "Longitude": -46.7874591}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 5, "Nome da Loja": "NASCIMENTO&SILVA COMERCIO DE PRODUTOS ALIMENTIOS", "Endereço": "RUA PRESIDENTE COSTA E SILVA, 1659   JARDIM HELENA MARIA 06253-000 OSASCO", "Latitude": -23.4995529, "Longitude": -46.796749}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 6, "Nome da Loja": "SUPERMERCADO KIBE", "Endereço": "AV FELIPPO STURBA, 111    JARDIM ANHANGUERA 05267-200 SAO PAULO", "Latitude": -23.4457187, "Longitude": -46.7921908}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 7, "Nome da Loja": "KIBE ATACADISTA DE ALIMENTOS LTDA", "Endereço": "R LEOPOLDO DE PASSOS LIMA, 72     JARDIM SANTA FE (ZONA OES 05271-000 SAO PAULO", "Latitude": -23.4305141, "Longitude": -46.7877742}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 8, "Nome da Loja": "MERCADINHO ROBERTO KIBE LTDA - ME", "Endereço": "R LEOPOLDO DE PASSOS LIMA, 778    JD SANTA FE 05271-000 SAO PAULO", "Latitude": -23.4282631, "Longitude": -46.7944118}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 9, "Nome da Loja": "MERCADO FENIX", "Endereço": "R YOLANDA MAHALY, 152    COLINAS DA ANHANGUERA 06537-060 SANTANA DE PARNAIBA", "Latitude": -23.4272488, "Longitude": -46.824985}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 10, "Nome da Loja": "ENCANTO", "Endereço": "R DI CAVALCANTI, 302    COLINAS ANHANGUERA 06537-085 SANTANA DE PARNAIBA", "Latitude": -23.4277168, "Longitude": -46.8263433}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Terça", "Ordem": 11, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Endereço": "AV JORDANO MENDES, 588    JORDANESIA (JORDANESIA) 07776-400 CAJAMAR", "Latitude": -23.3366525, "Longitude": -46.837294}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 1, "Nome da Loja": "ZATTAO", "Endereço": "AV MIGUEL DE CASTRO, 586    VILA ZAT 02950-000 SAO PAULO", "Latitude": -23.4819362, "Longitude": -46.7179359}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 2, "Nome da Loja": "SUPERMERCADO LOPES & LUMA LTDA", "Endereço": "AV COMENDADOR FEIZ ZARZUR, 1222   JARDIM CIDADE PIRITUBA 02942-000 SAO PAULO", "Latitude": -23.4767157, "Longitude": -46.7221071}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 3, "Nome da Loja": "VELEJAR SUPERMERCADO LTDA", "Endereço": "R SAVERIO VALENTE, 23     PARQUE NACOES UNIDAS 02996-120 SAO PAULO", "Latitude": -23.4414737, "Longitude": -46.7372609}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 4, "Nome da Loja": "COMERCIAL SHITSU", "Endereço": "AV ANTONIO C COSTA, 953    JD BELA VISTA 06053-014 OSASCO", "Latitude": -23.5485536, "Longitude": -46.783905}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 5, "Nome da Loja": "MERCADINHO AGOSTINHO", "Endereço": "R MARIA QUINTINA DOS SANTOS, 618    JARDIM CALIFORNIA 06122-190 OSASCO", "Latitude": -23.543336, "Longitude": -46.7969614999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 6, "Nome da Loja": "SUPERMERCADO JAPAO", "Endereço": "AV JOAO DE ANDRADE, 1113   JD SANTO ANTONIO 06132-002 OSASCO", "Latitude": -23.5547882, "Longitude": -46.8013753}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 7, "Nome da Loja": "SUPERMERCADO BRUNO - LOJA II", "Endereço": "EST ONDA VERDE, 1089   PARQUE SANTA TEREZA 06341-170 CARAPICUIBA", "Latitude": -23.5699419, "Longitude": -46.8194206999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 8, "Nome da Loja": "SUPERMERCADO BRUNO - LOJA III", "Endereço": "R ITAJUBA, 363    PARQUE SANTA TERESA 06341-160 CARAPICUIBA", "Latitude": -23.5698129, "Longitude": -46.8240366}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 9, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "R EDUARDO AUGUSTO MESQUITA, 1147   PARQUE SANTA TERESA 06340-380 CARAPICUIBA", "Latitude": -23.566157, "Longitude": -46.8236019}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 10, "Nome da Loja": "SUPERMERCADO BRUNO", "Endereço": "AV PLUTAO, 583    JARDIM NOVO HORIZONTE 06341-650 CARAPICUIBA", "Latitude": -23.5743248, "Longitude": -46.8170748999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 11, "Nome da Loja": "SUPERMERCADO LISBOA", "Endereço": "R MARIO QUINTANA, 260    RECANTO DAS ROSAS 06149-260 OSASCO", "Latitude": -23.580289, "Longitude": -46.8143114}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 1, "Nome da Loja": "MMM SUPERMERCADO LTDA", "Endereço": "R AGOSTINHO NAVARRO, 170    CONCEICAO 06140-000 OSASCO", "Latitude": -23.5781938, "Longitude": -46.7980227}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 2, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "EST DO COPIUVA, 1985   VILA DA OPORTUNIDADE 06330-000 CARAPICUIBA", "Latitude": -23.5543838, "Longitude": -46.8261654}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "AV INOCENCIO SERAFICO, 1894   VILA SILVA RIBEIRO 06380-021 CARAPICUIBA", "Latitude": -23.5488256, "Longitude": -46.8348200999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 4, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS JAPAO LTDA", "Endereço": "EST VELHA DE ITAPEVI, 4296   PARK DAS NACOES 06444-000 BARUERI", "Latitude": -23.5407472, "Longitude": -46.8826721999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 5, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "AV CARMINE GRAGNANO, 798    CENTRO 06600-010 JANDIRA", "Latitude": -23.5298406, "Longitude": -46.8981268}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 6, "Nome da Loja": "N.S. LAR SUPERMERCADO LTDA", "Endereço": "R CECILIA PEREIRA ALVES, 105    JARDIM VITAPOLIS 06693-360 ITAPEVI", "Latitude": -23.5345602, "Longitude": -46.9259633}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 7, "Nome da Loja": "SANZITO SUPERMERCADOS LTDA", "Endereço": "R LEOPOLDINA CAMARGO, 260    VILA DR.CARDOSO 06653-040 ITAPEVI", "Latitude": -23.5460735, "Longitude": -46.9331156999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 8, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "ROD ENGENHEIRO RENE BENEDITO DA SILVA, 668    SAO JOAO 06683-000 ITAPEVI", "Latitude": -23.5473865, "Longitude": -46.9427536}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 9, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "R MAGALI WESSEL, 25     JARDIM ITACOLOMI 06660-750 ITAPEVI", "Latitude": -23.5449841, "Longitude": -46.956073}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 10, "Nome da Loja": "N.S. LAR SUPERMERCADO LTDA", "Endereço": "AVENIDA LIZETE GERALDA CALANDRINI GUIMARAES, 57     PARQUE SUBURBANO 06663-650 ITAPEVI", "Latitude": -23.5645276, "Longitude": -46.9324829}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 1, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS SUPER COTIA LTDA", "Endereço": "AVENIDA DO RIO PEQUENO, 1563   RIO PEQUENO 05379-000 SAO PAULO", "Latitude": -23.5670012, "Longitude": -46.7538444}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 2, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "AV CARLOS LACERDA, 2170   PIRAJUSSARA 05789-001 SAO PAULO", "Latitude": -23.6385813, "Longitude": -46.7795950999999}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Endereço": "R JOAO DA CRUZ E SOUSA, 5      JARDIM DAS ROSAS (ZONA SU 05893-000 SAO PAULO", "Latitude": -23.6587634, "Longitude": -46.7895018}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 4, "Nome da Loja": "SUPERMERCADOS BANDEIRA LTDA.", "Endereço": "PRACA DAS BANDEIRAS, 17     CENTRO 06850-005 ITAPECERICA DA SERRA", "Latitude": -23.7187514, "Longitude": -46.851248}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 5, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS SUPER COTIA LTDA", "Endereço": "EST PADRE INACIO, 720    JARDIM PETROPOLIS 06700-450 COTIA", "Latitude": -23.6180716, "Longitude": -46.9325576}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 6, "Nome da Loja": "FAMILIA SUPERMERCADOS 1 LTDA", "Endereço": "RUA BATISTA CEPELOS, 25     CENTRO 06700-130 COTIA", "Latitude": -23.603513, "Longitude": -46.9314958}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 7, "Nome da Loja": "FAMILIA SUPERMERCADOS LTDA", "Endereço": "AVENIDA PROFESSOR JOAQUIM BARRETO, 1133   CENTRO 06700-170 COTIA", "Latitude": -23.6059725, "Longitude": -46.9422143}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 8, "Nome da Loja": "RAI ATACADISTA", "Endereço": "R PINHAL, 183    JARDIM SABIA 06716-575 COTIA", "Latitude": -23.6007443, "Longitude": -46.8990479}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 9, "Nome da Loja": "SP II", "Endereço": "AV JOSE GIORGI, 698    GRANJA VIANA II 06707-100 COTIA", "Latitude": -23.5832252, "Longitude": -46.8658635}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 10, "Nome da Loja": "SUPERMERCADO SUPER CITY SP II LTDA", "Endereço": "AV JOSE GIORGI, 698    GRANJA VIANA II 06707-100 COTIA", "Latitude": -23.5832252, "Longitude": -46.8658635}];
+const map = L.map('map').setView([-23.96, -46.40], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(map);
+let markers=[],polylines=[];
+const vendedorSelect=document.getElementById('vendedorSelect');
+const diaSelect=document.getElementById('diaSelect');
+const sidebarList=document.getElementById('sidebarList');
+const statsDiv=document.getElementById('stats');
+const vendedores=[...new Set(DATA.map(d=>d.Vendedor))];
+vendedores.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v.split(' ').slice(0,2).join(' ');vendedorSelect.appendChild(o)});
+const dias=[...new Set(DATA.map(d=>d.Dia))].sort();
+const dayLabels={1:'Segunda',2:'Terça',3:'Quarta',4:'Quinta',5:'Sexta'};
+dias.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent='Dia '+d+' - '+dayLabels[d];diaSelect.appendChild(o)});
+function getFiltered(){let f=DATA;const v=vendedorSelect.value,d=diaSelect.value;if(v)f=f.filter(s=>s.Vendedor===v);if(d)f=f.filter(s=>s.Dia===parseInt(d));return f}
+function createIcon(order){
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.3 21.7 0 14 0z" fill="#1a237e" stroke="#fff" stroke-width="1.5"/><text x="14" y="17" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold" font-family="Arial">'+order+'</text></svg>';
+  return L.divIcon({html:svg,className:'',iconSize:[28,36],iconAnchor:[14,36],popupAnchor:[0,-36]})
 }
-
-let map, markers = [], polylines = [], startMarkers = [];
-let currentVendedor = 'all', currentDay = 'all';
-
-function initMap() {
-  map = L.map('map', { zoomControl: true }).setView([-23.9, -46.45], 10);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  }).addTo(map);
-
-  const vendedores = [...new Set(CLEAN_DATA.map(d => d.Vendedor))];
-  const sel = document.getElementById('vendedorFilter');
-  vendedores.forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v;
-    opt.textContent = v;
-    sel.appendChild(opt);
+function updateMap(){
+  markers.forEach(m=>map.removeLayer(m));polylines.forEach(p=>map.removeLayer(p));markers=[];polylines=[];
+  const filtered=getFiltered();if(!filtered.length)return;
+  const groups={};filtered.forEach(s=>{const k=s.Vendedor+'_'+s.Dia;if(!groups[k])groups[k]=[];groups[k].push(s)});
+  const dayColors={1:'#1565c0',2:'#2e7d32',3:'#e65100',4:'#6a1b9a',5:'#c62828'};
+  const bounds=[];
+  Object.values(groups).forEach(g=>{
+    g.sort((a,b)=>a.Ordem-b.Ordem);
+    const coords=g.map(s=>[s.Latitude,s.Longitude]);
+    if(coords.length>1){const line=L.polyline(coords,{color:dayColors[g[0].Dia]||'#333',weight:3,opacity:0.7}).addTo(map);polylines.push(line)}
+    g.forEach(s=>{
+      const icon=createIcon(s.Ordem);
+      const popup='<div style="min-width:200px"><strong style="font-size:14px">'+s['Nome da Loja']+'</strong><br>'+(s['Endereço']?'<span style="color:#555;font-size:12px">📍 '+s['Endereço']+'</span><br>':'')+'<span style="color:#777;font-size:11px">Ordem: '+s.Ordem+' | '+s['Dia da Semana']+'</span></div>';
+      const marker=L.marker([s.Latitude,s.Longitude],{icon}).addTo(map).bindPopup(popup);
+      markers.push(marker);bounds.push([s.Latitude,s.Longitude])
+    })
   });
-  sel.addEventListener('change', e => { currentVendedor = e.target.value; updateMap(); });
-
-  updateMap();
+  if(bounds.length)map.fitBounds(bounds,{padding:[30,30]})
 }
-
-function filterDay(day) {
-  currentDay = day;
-  document.querySelectorAll('.day-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.day == String(day));
-  });
-  updateMap();
-}
-
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2-lat1) * Math.PI/180;
-  const dLon = (lon2-lon1) * Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function updateMap() {
-  markers.forEach(m => map.removeLayer(m));
-  polylines.forEach(p => map.removeLayer(p));
-  startMarkers.forEach(m => map.removeLayer(m));
-  markers = []; polylines = []; startMarkers = [];
-
-  let filtered = CLEAN_DATA;
-  if (currentVendedor !== 'all') filtered = filtered.filter(d => d.Vendedor === currentVendedor);
-  if (currentDay !== 'all') filtered = filtered.filter(d => d.Dia === currentDay);
-
-  // Stats
-  document.getElementById('statLojas').textContent = filtered.length;
-  const uniqueDays = new Set(filtered.map(d => d.Vendedor + '-' + d.Dia));
-  document.getElementById('statDias').textContent = uniqueDays.size;
-
-  // Calculate total distance
-  let totalKm = 0;
-  const groups = {};
-  filtered.forEach(d => {
-    const key = d.Vendedor + '-' + d.Dia;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(d);
-  });
-  Object.values(groups).forEach(g => {
-    g.sort((a,b) => a.Ordem - b.Ordem);
-    for (let i = 1; i < g.length; i++) {
-      totalKm += haversine(g[i-1].Latitude, g[i-1].Longitude, g[i].Latitude, g[i].Longitude);
-    }
-  });
-  document.getElementById('statKm').textContent = Math.round(totalKm);
-
-  // Start points
-  const activeVendedores = currentVendedor !== 'all' ? [currentVendedor] : [...new Set(filtered.map(d => d.Vendedor))];
-  activeVendedores.forEach(v => {
-    const sp = START_POINTS[v];
-    if (!sp) return;
-    const icon = L.divIcon({
-      className: '',
-      html: `<div class="start-icon">🏠</div>`,
-      iconSize: [32, 32], iconAnchor: [16, 16]
-    });
-    const m = L.marker([sp.lat, sp.lon], { icon, zIndexOffset: 1000 })
-      .addTo(map)
-      .bindPopup(`<b>Ponto de Partida</b><br>${v}<br>${sp.label}`);
-    startMarkers.push(m);
-  });
-
-  // Draw routes and markers per day
-  Object.entries(groups).forEach(([key, stores]) => {
-    stores.sort((a,b) => a.Ordem - b.Ordem);
-    const day = stores[0].Dia;
-    const vendedor = stores[0].Vendedor;
-    const color = COLORS[day];
-
-    // Route line
-    const sp = START_POINTS[vendedor];
-    const latlngs = sp ? [[sp.lat, sp.lon]] : [];
-    stores.forEach(s => latlngs.push([s.Latitude, s.Longitude]));
-
-    const line = L.polyline(latlngs, {
-      color, weight: 3, opacity: 0.7, dashArray: '8, 6'
-    }).addTo(map);
-    polylines.push(line);
-
-    // Markers
-    stores.forEach(s => {
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="
-          background:${color}; color:white; width:26px; height:26px;
-          border-radius:50%; display:flex; align-items:center; justify-content:center;
-          font-size:11px; font-weight:700; border:2px solid white;
-          box-shadow:0 1px 4px rgba(0,0,0,0.3);
-        ">${s.Ordem}</div>`,
-        iconSize: [26, 26], iconAnchor: [13, 13]
+function updateSidebar(){
+  const filtered=getFiltered();sidebarList.innerHTML='';
+  statsDiv.textContent='Total: '+filtered.length+' lojas';
+  const groups={};filtered.forEach(s=>{const k=s.Vendedor+'__'+s.Dia;if(!groups[k])groups[k]={vendedor:s.Vendedor,dia:s.Dia,diaSemana:s['Dia da Semana'],stores:[]};groups[k].stores.push(s)});
+  Object.values(groups).sort((a,b)=>a.vendedor.localeCompare(b.vendedor)||a.dia-b.dia).forEach(group=>{
+    group.stores.sort((a,b)=>a.Ordem-b.Ordem);
+    const vendName=group.vendedor.split(' ').slice(0,2).join(' ');
+    const header=document.createElement('div');header.className='day-group-header collapsed';
+    header.innerHTML='<span>'+vendName+' - '+group.diaSemana+' ('+group.stores.length+')</span><span class="arrow">▼</span>';
+    const content=document.createElement('div');content.className='day-group-content collapsed';
+    group.stores.forEach(s=>{
+      const item=document.createElement('div');item.className='store-item';
+      item.innerHTML='<div class="order-num">'+s.Ordem+'</div><div class="store-info"><div class="store-name">'+s['Nome da Loja']+'</div><div class="store-addr">'+(s['Endereço']||'')+'</div></div>';
+      item.addEventListener('click',()=>{
+        const marker=markers.find(m=>{const ll=m.getLatLng();return Math.abs(ll.lat-s.Latitude)<0.0001&&Math.abs(ll.lng-s.Longitude)<0.0001});
+        if(marker){map.setView([s.Latitude,s.Longitude],15);marker.openPopup()}
+        if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('mobile-open')
       });
-      const m = L.marker([s.Latitude, s.Longitude], { icon })
-        .addTo(map)
-        .bindPopup(`
-          <b>${s['Nome da Loja']}</b><br>
-          ${s['Endereço'] ? '<span style="color:#555;font-size:12px;">📍 ' + s['Endereço'] + '</span><br>' : ''}
-          <span style="color:${color};font-weight:bold;">Dia ${s.Dia} - ${s['Dia da Semana']}</span><br>
-          Ordem: ${s.Ordem} de ${stores.length}<br>
-          Vendedor: ${s.Vendedor}<br>
-          <small>${s.Latitude.toFixed(6)}, ${s.Longitude.toFixed(6)}</small>
-        `);
-      markers.push(m);
+      content.appendChild(item)
     });
-  });
-
-  // Fit bounds
-  if (markers.length > 0) {
-    const allPoints = markers.map(m => m.getLatLng());
-    startMarkers.forEach(m => allPoints.push(m.getLatLng()));
-    map.fitBounds(L.latLngBounds(allPoints).pad(0.1));
-  }
-
-  // Update sidebar
-  updateSidebar(filtered);
+    header.addEventListener('click',()=>{header.classList.toggle('collapsed');content.classList.toggle('collapsed')});
+    sidebarList.appendChild(header);sidebarList.appendChild(content)
+  })
 }
-
-function updateSidebar(filtered) {
-  const title = document.getElementById('sidebarTitle');
-  title.textContent = `${filtered.length} lojas na rota`;
-
-  const list = document.getElementById('storeList');
-  list.innerHTML = '';
-
-  const sorted = [...filtered].sort((a,b) => {
-    if (a.Vendedor !== b.Vendedor) return a.Vendedor.localeCompare(b.Vendedor);
-    if (a.Dia !== b.Dia) return a.Dia - b.Dia;
-    return a.Ordem - b.Ordem;
-  });
-
-  // Group by vendedor+dia
-  const groupMap = {};
-  sorted.forEach(s => {
-    const key = s.Vendedor + '|' + s.Dia;
-    if (!groupMap[key]) groupMap[key] = [];
-    groupMap[key].push(s);
-  });
-
-  Object.entries(groupMap).forEach(([key, stores]) => {
-    const s0 = stores[0];
-    const shortName = s0.Vendedor.split(' ')[0];
-    const color = COLORS[s0.Dia];
-
-    // Accordion header
-    const groupHeader = document.createElement('div');
-    groupHeader.className = 'day-group-header';
-    groupHeader.innerHTML = `
-      <span>${shortName} — ${s0['Dia da Semana']}
-        <span class="day-badge" style="background:${color}">Dia ${s0.Dia}</span>
-      </span>
-      <span class="store-count">${stores.length} lojas</span>
-      <span class="arrow">▼</span>
-    `;
-
-    // Accordion content
-    const groupContent = document.createElement('div');
-    groupContent.className = 'day-group-content';
-
-    stores.forEach(s => {
-      const item = document.createElement('div');
-      item.className = 'store-item';
-      item.innerHTML = `
-        <div class="store-order" style="background:${COLORS[s.Dia]}">${s.Ordem}</div>
-        <div class="store-info">
-          <div class="store-name" title="${s['Nome da Loja']}">${s['Nome da Loja']}</div>
-          ${s['Endereço'] ? `<div class="store-coords" style="color:#666;">📍 ${s['Endereço']}</div>` : ''}
-          <div class="store-coords">${s.Latitude.toFixed(6)}, ${s.Longitude.toFixed(6)}</div>
-        </div>
-      `;
-      item.onclick = () => {
-        map.setView([s.Latitude, s.Longitude], 15);
-        const marker = markers.find(m => {
-          const ll = m.getLatLng();
-          return Math.abs(ll.lat - s.Latitude) < 0.0001 && Math.abs(ll.lng - s.Longitude) < 0.0001;
-        });
-        if (marker) marker.openPopup();
-      };
-      groupContent.appendChild(item);
-    });
-
-    // Set initial max-height for animation
-    groupHeader.addEventListener('click', () => {
-      const isCollapsed = groupContent.classList.contains('collapsed');
-      if (isCollapsed) {
-        groupContent.classList.remove('collapsed');
-        groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
-        groupHeader.classList.remove('collapsed');
-      } else {
-        groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
-        requestAnimationFrame(() => {
-          groupContent.classList.add('collapsed');
-          groupHeader.classList.add('collapsed');
-        });
-      }
-    });
-
-    list.appendChild(groupHeader);
-    list.appendChild(groupContent);
-
-    // Set initial state: COLLAPSED by default
-    groupHeader.classList.add('collapsed');
-    groupContent.classList.add('collapsed');
-    groupContent.style.maxHeight = '0px';
-  });
-}
-
-// Legend
-document.addEventListener('DOMContentLoaded', () => {
-  initMap();
-  const legendDiv = document.createElement('div');
-  legendDiv.className = 'legend';
-  legendDiv.innerHTML = `
-    <div class="legend-title">Legenda</div>
-    <div class="legend-item"><div class="start-icon" style="width:20px;height:20px;font-size:10px;border-width:2px;">🏠</div> Ponto de partida</div>
-    ${Object.entries(COLORS).map(([d,c]) => `
-      <div class="legend-item">
-        <div class="legend-color" style="background:${c}"></div>
-        <span>Dia ${d} — ${DAY_NAMES[d]}</span>
-      </div>
-    `).join('')}
-    <div class="legend-item"><div class="legend-line" style="background:#666;border:1px dashed #333;"></div> Rota do dia</div>
-  `;
-  document.getElementById('map').appendChild(legendDiv);
+vendedorSelect.addEventListener('change',()=>{updateMap();updateSidebar()});
+diaSelect.addEventListener('change',()=>{updateMap();updateSidebar()});
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('sidebarToggle').addEventListener('click',()=>document.getElementById('sidebar').classList.add('mobile-open'));
+  document.getElementById('sidebarClose').addEventListener('click',()=>document.getElementById('sidebar').classList.remove('mobile-open'))
 });
+updateMap();updateSidebar();
 </script>
 </body>
 </html>
