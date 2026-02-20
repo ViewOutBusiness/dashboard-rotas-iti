@@ -89,6 +89,29 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
   font-weight: 600; color: white; flex-shrink: 0;
 }
 
+.day-group-header {
+  padding: 10px 16px; background: #f0f2f5;
+  font-size: 13px; font-weight: 700; color: #444;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: space-between; user-select: none;
+  transition: background 0.15s;
+}
+.day-group-header:hover { background: #e8eaf6; }
+.day-group-header .arrow {
+  font-size: 10px; transition: transform 0.25s; color: #888;
+}
+.day-group-header.collapsed .arrow { transform: rotate(-90deg); }
+.day-group-content { overflow: hidden; transition: max-height 0.3s ease; }
+.day-group-content.collapsed { max-height: 0 !important; }
+.day-group-header .day-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 10px;
+  color: white; font-size: 11px; margin-left: 8px;
+}
+.day-group-header .store-count {
+  font-size: 11px; color: #888; font-weight: 400; margin-left: auto; margin-right: 8px;
+}
+
 .legend {
   position: absolute; bottom: 30px; left: 16px; z-index: 1000;
   background: white; padding: 12px 16px; border-radius: 8px;
@@ -105,6 +128,81 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
   width: 32px; height: 32px; display: flex; align-items: center;
   justify-content: center; font-size: 16px; font-weight: bold;
   border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Mobile toggle button */
+.sidebar-toggle {
+  display: none;
+  position: fixed; bottom: 16px; right: 16px; z-index: 1001;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: #1a237e; color: white; border: none;
+  font-size: 22px; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  align-items: center; justify-content: center;
+  transition: transform 0.2s;
+}
+.sidebar-toggle:active { transform: scale(0.9); }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .header { padding: 10px 14px; }
+  .header h1 { font-size: 16px; }
+  .header .subtitle { font-size: 11px; }
+
+  .controls {
+    padding: 10px 14px; gap: 10px;
+    flex-direction: column; align-items: stretch;
+  }
+  .control-group select { min-width: unset; width: 100%; }
+  .day-filters { flex-wrap: wrap; justify-content: center; }
+  .day-btn { padding: 6px 10px; font-size: 12px; }
+  .stats-bar { justify-content: center; gap: 16px; margin-left: 0; }
+  .stat .value { font-size: 18px; }
+
+  .main-content {
+    flex-direction: column;
+    height: calc(100vh - 200px);
+    position: relative;
+  }
+
+  #map { flex: 1; min-height: 0; }
+
+  .sidebar {
+    width: 100%; border-left: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    z-index: 1000; max-height: 55vh;
+    border-top: 2px solid #1a237e;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+  }
+  .sidebar.mobile-open { transform: translateY(0); }
+
+  .sidebar-header {
+    border-radius: 16px 16px 0 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+  }
+  .sidebar-close {
+    background: none; border: none; font-size: 22px;
+    cursor: pointer; color: #666; padding: 0 4px;
+    display: none;
+  }
+
+  .sidebar-toggle { display: flex; }
+  .sidebar.mobile-open + .sidebar-toggle { display: none; }
+  .sidebar-close { display: block !important; }
+
+  .legend { bottom: 16px; left: 10px; font-size: 11px; padding: 8px 12px; }
+  .legend-title { font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .main-content { height: calc(100vh - 240px); }
+  .day-btn { padding: 5px 8px; font-size: 11px; }
+  .stats-bar { gap: 12px; }
+  .stat .value { font-size: 16px; }
 }
 </style>
 </head>
@@ -153,10 +251,14 @@ body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
 
 <div class="main-content">
   <div id="map"></div>
-  <div class="sidebar">
-    <div class="sidebar-header" id="sidebarHeader">Lojas na rota</div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header" id="sidebarHeader">
+      <span id="sidebarTitle">Lojas na rota</span>
+      <button class="sidebar-close" id="sidebarClose" onclick="toggleSidebar()">&times;</button>
+    </div>
     <div id="storeList"></div>
   </div>
+  <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
 </div>
 
 <script>
@@ -169,6 +271,24 @@ const START_POINTS = {
   'JULIVAL FERRARI RAMOS': { lat: -23.4077722, lon: -46.353613, label: 'Arujá' }
 };
 
+// Filter out vendor names appearing as stores and re-order
+const VENDOR_NAMES = [...new Set(DATA.map(d => d.Vendedor))];
+const CLEAN_DATA = DATA.filter(d => !VENDOR_NAMES.includes(d['Nome da Loja']));
+CLEAN_DATA.forEach(d => {
+  const group = CLEAN_DATA.filter(x => x.Vendedor === d.Vendedor && x.Dia === d.Dia);
+  group.sort((a,b) => a.Ordem - b.Ordem);
+  group.forEach((item, idx) => item.Ordem = idx + 1);
+});
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const toggle = document.getElementById('sidebarToggle');
+  sidebar.classList.toggle('mobile-open');
+  const isOpen = sidebar.classList.contains('mobile-open');
+  toggle.style.display = isOpen ? 'none' : '';
+  if (typeof map !== 'undefined') setTimeout(() => map.invalidateSize(), 350);
+}
+
 let map, markers = [], polylines = [], startMarkers = [];
 let currentVendedor = 'all', currentDay = 'all';
 
@@ -178,7 +298,7 @@ function initMap() {
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  const vendedores = [...new Set(DATA.map(d => d.Vendedor))];
+  const vendedores = [...new Set(CLEAN_DATA.map(d => d.Vendedor))];
   const sel = document.getElementById('vendedorFilter');
   vendedores.forEach(v => {
     const opt = document.createElement('option');
@@ -213,7 +333,7 @@ function updateMap() {
   startMarkers.forEach(m => map.removeLayer(m));
   markers = []; polylines = []; startMarkers = [];
 
-  let filtered = DATA;
+  let filtered = CLEAN_DATA;
   if (currentVendedor !== 'all') filtered = filtered.filter(d => d.Vendedor === currentVendedor);
   if (currentDay !== 'all') filtered = filtered.filter(d => d.Dia === currentDay);
 
@@ -308,8 +428,8 @@ function updateMap() {
 }
 
 function updateSidebar(filtered) {
-  const header = document.getElementById('sidebarHeader');
-  header.textContent = `${filtered.length} lojas na rota`;
+  const title = document.getElementById('sidebarTitle');
+  title.textContent = `${filtered.length} lojas na rota`;
 
   const list = document.getElementById('storeList');
   list.innerHTML = '';
@@ -320,35 +440,78 @@ function updateSidebar(filtered) {
     return a.Ordem - b.Ordem;
   });
 
-  let lastDay = null, lastVendedor = null;
+  // Group by vendedor+dia
+  const groupMap = {};
   sorted.forEach(s => {
-    if (s.Vendedor !== lastVendedor || s.Dia !== lastDay) {
-      const divider = document.createElement('div');
-      divider.style.cssText = 'padding:8px 16px;background:#f0f2f5;font-size:12px;font-weight:700;color:#555;border-bottom:1px solid #e0e0e0;';
-      const shortName = s.Vendedor.split(' ')[0];
-      divider.textContent = `${shortName} — ${s['Dia da Semana']} (Dia ${s.Dia})`;
-      list.appendChild(divider);
-      lastDay = s.Dia; lastVendedor = s.Vendedor;
-    }
+    const key = s.Vendedor + '|' + s.Dia;
+    if (!groupMap[key]) groupMap[key] = [];
+    groupMap[key].push(s);
+  });
 
-    const item = document.createElement('div');
-    item.className = 'store-item';
-    item.innerHTML = `
-      <div class="store-order" style="background:${COLORS[s.Dia]}">${s.Ordem}</div>
-      <div class="store-info">
-        <div class="store-name" title="${s['Nome da Loja']}">${s['Nome da Loja']}</div>
-        <div class="store-coords">${s.Latitude.toFixed(6)}, ${s.Longitude.toFixed(6)}</div>
-      </div>
+  Object.entries(groupMap).forEach(([key, stores]) => {
+    const s0 = stores[0];
+    const shortName = s0.Vendedor.split(' ')[0];
+    const color = COLORS[s0.Dia];
+
+    // Accordion header
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'day-group-header';
+    groupHeader.innerHTML = `
+      <span>${shortName} — ${s0['Dia da Semana']}
+        <span class="day-badge" style="background:${color}">Dia ${s0.Dia}</span>
+      </span>
+      <span class="store-count">${stores.length} lojas</span>
+      <span class="arrow">▼</span>
     `;
-    item.onclick = () => {
-      map.setView([s.Latitude, s.Longitude], 15);
-      const marker = markers.find(m => {
-        const ll = m.getLatLng();
-        return Math.abs(ll.lat - s.Latitude) < 0.0001 && Math.abs(ll.lng - s.Longitude) < 0.0001;
-      });
-      if (marker) marker.openPopup();
-    };
-    list.appendChild(item);
+
+    // Accordion content
+    const groupContent = document.createElement('div');
+    groupContent.className = 'day-group-content';
+
+    stores.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'store-item';
+      item.innerHTML = `
+        <div class="store-order" style="background:${COLORS[s.Dia]}">${s.Ordem}</div>
+        <div class="store-info">
+          <div class="store-name" title="${s['Nome da Loja']}">${s['Nome da Loja']}</div>
+          <div class="store-coords">${s.Latitude.toFixed(6)}, ${s.Longitude.toFixed(6)}</div>
+        </div>
+      `;
+      item.onclick = () => {
+        map.setView([s.Latitude, s.Longitude], 15);
+        const marker = markers.find(m => {
+          const ll = m.getLatLng();
+          return Math.abs(ll.lat - s.Latitude) < 0.0001 && Math.abs(ll.lng - s.Longitude) < 0.0001;
+        });
+        if (marker) marker.openPopup();
+      };
+      groupContent.appendChild(item);
+    });
+
+    // Set initial max-height for animation
+    groupHeader.addEventListener('click', () => {
+      const isCollapsed = groupContent.classList.contains('collapsed');
+      if (isCollapsed) {
+        groupContent.classList.remove('collapsed');
+        groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
+        groupHeader.classList.remove('collapsed');
+      } else {
+        groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
+        requestAnimationFrame(() => {
+          groupContent.classList.add('collapsed');
+          groupHeader.classList.add('collapsed');
+        });
+      }
+    });
+
+    list.appendChild(groupHeader);
+    list.appendChild(groupContent);
+
+    // Set initial expanded state with proper height
+    requestAnimationFrame(() => {
+      groupContent.style.maxHeight = groupContent.scrollHeight + 'px';
+    });
   });
 }
 
