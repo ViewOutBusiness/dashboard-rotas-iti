@@ -189,6 +189,12 @@ function mkIcon(order) {
   });
 }
 
+// Endereço da casa de cada vendedor (destino final da rota)
+const VENDOR_HOME = {
+  'CLAITON DOS SANTOS BATISTA': '-24.0239813,-46.5144143',
+  'JULIVAL FERRARI RAMOS': '-23.4077722,-46.353613'
+};
+
 function openGoogleMaps() {
   const filtered = getFiltered();
   if (!filtered.length) return;
@@ -227,19 +233,25 @@ function openGoogleMaps() {
 }
 
 function buildGoogleMapsUrl(userLocation, sorted) {
-  // Se temos localização do usuário, origem = localização atual, todas as lojas viram waypoints + destino
-  // Se não temos, origem = primeira loja (comportamento anterior)
+  // Origem = localização atual (GPS) ou primeira loja como fallback
+  // Destino = casa do vendedor (sempre!)
+  // Waypoints = todas as lojas do dia
   let origin, destination, allStops;
+
+  // Destino é a casa do vendedor
+  const vendedor = sorted[0].Vendedor;
+  const homeLoc = VENDOR_HOME[vendedor];
 
   if (userLocation) {
     origin = userLocation;
-    destination = sorted[sorted.length - 1].Latitude + ',' + sorted[sorted.length - 1].Longitude;
-    allStops = sorted.slice(0, -1); // todas menos a última (que é o destino)
+    allStops = sorted; // todas as lojas viram waypoints
   } else {
     origin = sorted[0].Latitude + ',' + sorted[0].Longitude;
-    destination = sorted[sorted.length - 1].Latitude + ',' + sorted[sorted.length - 1].Longitude;
-    allStops = sorted.slice(1, -1);
+    allStops = sorted.slice(1); // pula a primeira (que é a origem)
   }
+
+  // Destino final = casa do vendedor (ou última loja se não tiver cadastro)
+  destination = homeLoc || (sorted[sorted.length - 1].Latitude + ',' + sorted[sorted.length - 1].Longitude);
 
   // Waypoints (max 23 para limite do Google Maps)
   const step = allStops.length > 23 ? Math.ceil(allStops.length / 23) : 1;
