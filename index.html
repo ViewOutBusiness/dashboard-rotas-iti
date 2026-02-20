@@ -118,7 +118,7 @@
     <button class="sidebar-close" id="sidebarClose">&times;</button>
     <div class="sidebar-header">
       <h1>Rotas Otimizadas</h1>
-      <p>ITI ALHO &mdash; Guaruj&aacute; &rarr; Itanha&eacute;m</p>
+      <p>ITI ALHO</p>
     </div>
     <div class="controls">
       <select id="vendedorSelect"><option value="">Todos os Vendedores</option></select>
@@ -312,10 +312,8 @@ function updateSidebar() {
   sList.innerHTML = '';
   statsDiv.textContent = 'Total: ' + filtered.length + ' lojas';
 
-  // Show/hide Google Maps button
+  // Show/hide Google Maps button - só quando vendedor E dia estiverem selecionados
   if (vSel.value && dSel.value) {
-    gmapsBtn.classList.add('visible');
-  } else if (vSel.value || dSel.value) {
     gmapsBtn.classList.add('visible');
   } else {
     gmapsBtn.classList.remove('visible');
