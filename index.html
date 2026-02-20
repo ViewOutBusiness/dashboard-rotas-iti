@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Rotas - ITI Alho</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; }
+
+.header {
+  background: linear-gradient(135deg, #1a237e, #283593);
+  color: white; padding: 16px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.header h1 { font-size: 20px; font-weight: 600; }
+.header .subtitle { font-size: 13px; opacity: 0.8; }
+
+.controls {
+  background: white; padding: 14px 24px;
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.control-group { display: flex; flex-direction: column; gap: 4px; }
+.control-group label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+.control-group select {
+  padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px;
+  font-size: 14px; background: white; cursor: pointer; min-width: 200px;
+}
+.control-group select:focus { outline: none; border-color: #1a237e; box-shadow: 0 0 0 2px rgba(26,35,126,0.2); }
+
+.day-filters { display: flex; gap: 6px; align-items: center; }
+.day-btn {
+  padding: 7px 14px; border: 2px solid #ddd; border-radius: 20px;
+  font-size: 13px; font-weight: 600; cursor: pointer; background: white;
+  transition: all 0.2s;
+}
+.day-btn:hover { transform: scale(1.05); }
+.day-btn.active { color: white; border-color: transparent; }
+.day-btn[data-day="1"].active { background: #1565c0; }
+.day-btn[data-day="2"].active { background: #2e7d32; }
+.day-btn[data-day="3"].active { background: #e65100; }
+.day-btn[data-day="4"].active { background: #616161; }
+.day-btn[data-day="5"].active { background: #f9a825; color: #333; }
+.day-btn[data-day="all"].active { background: #1a237e; }
+
+.stats-bar {
+  display: flex; gap: 20px; margin-left: auto; align-items: center;
+}
+.stat { text-align: center; }
+.stat .value { font-size: 22px; font-weight: 700; color: #1a237e; }
+.stat .label { font-size: 11px; color: #888; text-transform: uppercase; }
+
+.main-content { display: flex; height: calc(100vh - 130px); }
+
+#map { flex: 1; z-index: 1; }
+
+.sidebar {
+  width: 340px; background: white; overflow-y: auto;
+  border-left: 1px solid #e0e0e0; padding: 0;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.05);
+}
+.sidebar-header {
+  padding: 14px 16px; background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 14px; font-weight: 600; color: #333;
+  position: sticky; top: 0; z-index: 2;
+}
+.store-item {
+  padding: 10px 16px; border-bottom: 1px solid #f0f0f0;
+  cursor: pointer; transition: background 0.15s;
+  display: flex; align-items: center; gap: 10px;
+}
+.store-item:hover { background: #f5f7ff; }
+.store-order {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: white; flex-shrink: 0;
+}
+.store-info { flex: 1; min-width: 0; }
+.store-name { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.store-coords { font-size: 11px; color: #999; }
+.store-day-tag {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  font-weight: 600; color: white; flex-shrink: 0;
+}
+
+.legend {
+  position: absolute; bottom: 30px; left: 16px; z-index: 1000;
+  background: white; padding: 12px 16px; border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  font-size: 12px;
+}
+.legend-title { font-weight: 700; margin-bottom: 8px; color: #333; }
+.legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.legend-color { width: 14px; height: 14px; border-radius: 50%; }
+.legend-line { width: 20px; height: 3px; border-radius: 2px; }
+
+.start-icon {
+  background: #d32f2f; color: white; border-radius: 50%;
+  width: 32px; height: 32px; display: flex; align-items: center;
+  justify-content: center; font-size: 16px; font-weight: bold;
+  border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Dashboard de Rotas - ITI Alho</h1>
+    <div class="subtitle">Roteirização otimizada de visitas por vendedor</div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="control-group">
+    <label>Vendedor</label>
+    <select id="vendedorFilter">
+      <option value="all">Todos os Vendedores</option>
+    </select>
+  </div>
+  <div class="control-group">
+    <label>Dia da Semana</label>
+    <div class="day-filters">
+      <button class="day-btn active" data-day="all" onclick="filterDay('all')">Todos</button>
+      <button class="day-btn" data-day="1" onclick="filterDay(1)">Seg</button>
+      <button class="day-btn" data-day="2" onclick="filterDay(2)">Ter</button>
+      <button class="day-btn" data-day="3" onclick="filterDay(3)">Qua</button>
+      <button class="day-btn" data-day="4" onclick="filterDay(4)">Qui</button>
+      <button class="day-btn" data-day="5" onclick="filterDay(5)">Sex</button>
+    </div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="value" id="statLojas">0</div>
+      <div class="label">Lojas</div>
+    </div>
+    <div class="stat">
+      <div class="value" id="statDias">0</div>
+      <div class="label">Dias</div>
+    </div>
+    <div class="stat">
+      <div class="value" id="statKm">0</div>
+      <div class="label">Km (est.)</div>
+    </div>
+  </div>
+</div>
+
+<div class="main-content">
+  <div id="map"></div>
+  <div class="sidebar">
+    <div class="sidebar-header" id="sidebarHeader">Lojas na rota</div>
+    <div id="storeList"></div>
+  </div>
+</div>
+
+<script>
+const DATA = [{"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 1, "Nome da Loja": "SUPERMERCADO LAS PALMAS", "Latitude": -23.9641666, "Longitude": -46.3233459}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 2, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Latitude": -23.9691495, "Longitude": -46.3197034}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 3, "Nome da Loja": "ADF SOUZA LTDA", "Latitude": -23.9655341, "Longitude": -46.3099179}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 4, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Latitude": -23.9749868, "Longitude": -46.309686}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 5, "Nome da Loja": "SUPERMERCADO VARANDAS E NAVAS LTDA", "Latitude": -23.9741344, "Longitude": -46.3021851}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 6, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Latitude": -23.9741344, "Longitude": -46.3021851}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 7, "Nome da Loja": "CMR COMERCIO DE ALIMENTOS LTDA", "Latitude": -23.9873292, "Longitude": -46.3021825}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 8, "Nome da Loja": "SUPERMERCADO JOIA LTDA", "Latitude": -23.989775, "Longitude": -46.2890553}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 9, "Nome da Loja": "EMPORIO X", "Latitude": -23.9944837, "Longitude": -46.2891953}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 10, "Nome da Loja": "SUPERMERCADO GOL LTDA", "Latitude": -23.9975448, "Longitude": -46.2785527}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 11, "Nome da Loja": "SUPERMERCADO ILHA LAS PALMAS", "Latitude": -24.0043113, "Longitude": -46.2737152}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 12, "Nome da Loja": "ESTRELA DO LITORAL ALIMENTOS LTDA", "Latitude": -23.9903579, "Longitude": -46.2703871}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 13, "Nome da Loja": "SUPERMERCADO JOIA LTDA", "Latitude": -23.9959045, "Longitude": -46.2605062}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 14, "Nome da Loja": "D. A BASTOS", "Latitude": -23.9612391, "Longitude": -46.2525097}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 15, "Nome da Loja": "PASCALE, PETRELLI & CIA LTDA", "Latitude": -23.9616687, "Longitude": -46.2420247}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 16, "Nome da Loja": "ANDRADE COMERCIO DE PRODUTOS ALIMENTICIOS LTDA - E", "Latitude": -23.9552903, "Longitude": -46.2888413}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 17, "Nome da Loja": "CMR COMERCIO DE ALIMENTOS LTDA", "Latitude": -23.9532108, "Longitude": -46.2923433}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 18, "Nome da Loja": "LATICINIOS ILHA DO GUARUJA LTDA", "Latitude": -23.9530356, "Longitude": -46.2927087}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 19, "Nome da Loja": "EOM COMERCIO DE ALIMENTOS LTDA", "Latitude": -23.9469084, "Longitude": -46.2883328}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 20, "Nome da Loja": "MERCADO MARE MANSA", "Latitude": -23.9747424, "Longitude": -46.1919474}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 1, "Nome da Loja": "SUPERMERCADO TALISMA DE SAO VICENTE LTDA", "Latitude": -23.9664144, "Longitude": -46.4058253}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 2, "Nome da Loja": "SUPERMERCADO TALISMA DA VILA LTDA", "Latitude": -23.9670939, "Longitude": -46.4036764}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 3, "Nome da Loja": "ULISSES ALVES DOMINGUES CIA LTDA", "Latitude": -23.9640252, "Longitude": -46.385889}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 4, "Nome da Loja": "CASA LUANDA SUPERMERCADOS LTDA", "Latitude": -23.9621618, "Longitude": -46.3796848}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 5, "Nome da Loja": "SUPERMERCADO FRANSUE LTDA", "Latitude": -23.9487135, "Longitude": -46.366809}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 6, "Nome da Loja": "SUPERMERCADO BARROS LTDA", "Latitude": -23.9431826, "Longitude": -46.3807393}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 7, "Nome da Loja": "ANTONIO MIRAMOTO & FILHO LTDA", "Latitude": -23.947969, "Longitude": -46.398074}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 8, "Nome da Loja": "MERCADO M. RODRIGUES FILHOS LTDA", "Latitude": -23.9445624, "Longitude": -46.3516065}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 9, "Nome da Loja": "MERCADO MARTINHO RODRIGUES LTDA - EPP", "Latitude": -23.939518, "Longitude": -46.3500237}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 10, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Latitude": -23.9326681, "Longitude": -46.3471943}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 11, "Nome da Loja": "MINIMERCADO E PADARIA ALMEIDA", "Latitude": -23.9317849, "Longitude": -46.3492376}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 12, "Nome da Loja": "MINIMERCADO E PADARIA BABALOO LTDA", "Latitude": -23.9547224, "Longitude": -46.3461262}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 13, "Nome da Loja": "SUPERMERCADO  VARANDAS LTDA", "Latitude": -23.9559797, "Longitude": -46.3442474}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 14, "Nome da Loja": "SUPERMERCADO FRANSUE LTDA", "Latitude": -23.9576904, "Longitude": -46.3414606}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 15, "Nome da Loja": "SUPERMERCADO VARANDAS LTDA", "Latitude": -23.9591621, "Longitude": -46.3482415}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 16, "Nome da Loja": "RMG COMERCIO DE ALIMENTOS LTDA", "Latitude": -23.9529274, "Longitude": -46.334716}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 17, "Nome da Loja": "MISTER MERCADO", "Latitude": -23.8146494, "Longitude": -46.0783746}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 1, "Nome da Loja": "MINI MERCADO NINA", "Latitude": -24.019254, "Longitude": -46.4805494}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 2, "Nome da Loja": "LINDINALVA DOS SANTOS", "Latitude": -24.0129954, "Longitude": -46.4708367}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 3, "Nome da Loja": "MENEZES & OLIVEIRA MERCADO, ACOUGUE E PADARIA LTDA", "Latitude": -24.0120558, "Longitude": -46.4709772}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 4, "Nome da Loja": "MINIMERCADO NOSSA SENHORA APARECIDA", "Latitude": -24.0111637, "Longitude": -46.4711676}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 5, "Nome da Loja": "LAURITA PEREIRA DA SILVA OLIVEIRA", "Latitude": -23.994903, "Longitude": -46.4753639}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 6, "Nome da Loja": "SUPERMERCADO APR LTDA", "Latitude": -23.9868072, "Longitude": -46.4823134}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 7, "Nome da Loja": "SUPERMERCADO FLOR DO PARQUE LTDA", "Latitude": -23.9856128, "Longitude": -46.4835309}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 8, "Nome da Loja": "ATALAIA COMERCIO ATACADISTA DE PRODUTOS ALIMENTICI", "Latitude": -23.9863801, "Longitude": -46.4680835}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 9, "Nome da Loja": "SUPERMERCADO ZERO HORA", "Latitude": -24.0007038, "Longitude": -46.4461828}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 10, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Latitude": -24.0117872, "Longitude": -46.4523017}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 11, "Nome da Loja": "PANIFICADORA POMPEIA LIMITADA EPP", "Latitude": -23.9962677, "Longitude": -46.4221399}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 12, "Nome da Loja": "MERCEARIA ESPAGUETE", "Latitude": -23.9945534, "Longitude": -46.4182083}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 13, "Nome da Loja": "SUPERMERCADO FIGUEROA", "Latitude": -24.0124027, "Longitude": -46.4013875}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 14, "Nome da Loja": "ATALAIA COMERCIO ATACADISTA DE PRODUTOS ALIMENTICI", "Latitude": -23.970797, "Longitude": -46.4074759}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 15, "Nome da Loja": "SUPERMERCADO PIRAMIDE LTDA", "Latitude": -23.9687271, "Longitude": -46.3959949}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 16, "Nome da Loja": "SUPERMERCADO IRMAOS COSTA LTDA", "Latitude": -23.9691198, "Longitude": -46.3896653}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 1, "Nome da Loja": "CLAITON DOS SANTOS BATISTA", "Latitude": -24.0239813, "Longitude": -46.5144143}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 2, "Nome da Loja": "PADARIA ESTRELA RAY", "Latitude": -24.0225228, "Longitude": -46.5193645}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 3, "Nome da Loja": "JIF MERCEARIA", "Latitude": -24.0217926, "Longitude": -46.5204834}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 4, "Nome da Loja": "CENTRO DE PRODUTOS NORDESTINOS HORTIFRUT IBERE", "Latitude": -24.0285904, "Longitude": -46.5213307}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 5, "Nome da Loja": "SUPERMERCADO IRMAOS COSTA LTDA LOJA 2", "Latitude": -24.0319401, "Longitude": -46.5248}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 6, "Nome da Loja": "JHENIFER SILVA MENINO", "Latitude": -24.0344196, "Longitude": -46.5301639}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 7, "Nome da Loja": "CASA DE CARNES MAGNIFICA", "Latitude": -24.035902, "Longitude": -46.5313809}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 8, "Nome da Loja": "MINI MERCADO E ADEGA PONTO CERTO", "Latitude": -24.036492, "Longitude": -46.5317706}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 9, "Nome da Loja": "AMANDA BEATRIZ SANTOS DIAS DINO", "Latitude": -24.0364193, "Longitude": -46.5320343}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 10, "Nome da Loja": "MINI MERCADO ELISA", "Latitude": -24.0364193, "Longitude": -46.5320343}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 11, "Nome da Loja": "ECO SUPERMERCADO", "Latitude": -24.0455329, "Longitude": -46.5260968}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 12, "Nome da Loja": "SAO JOSE DE CAICARA SUPERMERCADO E PADARIA LTDA", "Latitude": -24.0409057, "Longitude": -46.5160961}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 13, "Nome da Loja": "SUPERMERCADO NOVA ESMERALDA DE PRAIA GRANDE LTDA", "Latitude": -24.0225368, "Longitude": -46.5299218}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 14, "Nome da Loja": "SUPERMERCADO NOVA ONDA LTDA", "Latitude": -24.02178, "Longitude": -46.4987209}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 15, "Nome da Loja": "COMERCIAL DE ALIMENTOS NOSSA SENHORA DA BOA HORA", "Latitude": -24.0198801, "Longitude": -46.4959109}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 16, "Nome da Loja": "ADEVALDO SOARES DOS SANTOS", "Latitude": -24.0338981, "Longitude": -46.4928789}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 1, "Nome da Loja": "MAR DE TRIGO PADARIA, LANCHONETE E MERCEARIA", "Latitude": -24.0474375, "Longitude": -46.5258553}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 2, "Nome da Loja": "SUPERMERCADO APR LTDA", "Latitude": -24.0631647, "Longitude": -46.562261}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 3, "Nome da Loja": "MDV SUPERMERCADOS LTDA", "Latitude": -24.0662267, "Longitude": -46.5630173}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 4, "Nome da Loja": "SUPERMERCADO APR LTDA", "Latitude": -24.0706504, "Longitude": -46.5754014}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 5, "Nome da Loja": "J. SIQUEIRA & CASSIMIRO COMERCIO DE ALIMENTOS LTDA", "Latitude": -24.1028221, "Longitude": -46.6418739}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 6, "Nome da Loja": "TRES PODERES SUPERMERCADO", "Latitude": -24.1442042, "Longitude": -46.7211652}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 7, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Latitude": -24.1614843, "Longitude": -46.7527067}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 8, "Nome da Loja": "SAITO", "Latitude": -24.1623599, "Longitude": -46.7625304}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 9, "Nome da Loja": "J. M. SIQUEIRA ALVES", "Latitude": -24.1629236, "Longitude": -46.7828177}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 10, "Nome da Loja": "EMPORIO DFREITAS PRODUTOS NATURAIS", "Latitude": -24.1807307, "Longitude": -46.7827765}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 11, "Nome da Loja": "SUPERMERCADO SAITO LTDA", "Latitude": -24.1839673, "Longitude": -46.7876864}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 12, "Nome da Loja": "SAITO", "Latitude": -24.1853048, "Longitude": -46.7922694}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 13, "Nome da Loja": "SUPERMERCADO SAITO LTDA", "Latitude": -24.189156, "Longitude": -46.8164409}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 14, "Nome da Loja": "SUPERMERCADO TRES PODERES", "Latitude": -24.2391698, "Longitude": -46.8964868}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 15, "Nome da Loja": "MERCADO J FREITAS LTDA EPP", "Latitude": -24.5231469, "Longitude": -48.1085441}, {"Vendedor": "CLAITON DOS SANTOS BATISTA", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 16, "Nome da Loja": "ELIAS DE AVELAR DA COSTA 40428499899", "Latitude": -24.7371218, "Longitude": -48.1158311}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 1, "Nome da Loja": "JULIVAL FERRARI RAMOS", "Latitude": -23.4077722, "Longitude": -46.353613}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 2, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Latitude": -23.394453, "Longitude": -46.7153684}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 3, "Nome da Loja": "SM.FEDERZONI 2", "Latitude": -23.3509744, "Longitude": -46.7433281}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 4, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Latitude": -23.3432624, "Longitude": -46.7434669}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 5, "Nome da Loja": "SM. FEDERZONI 1", "Latitude": -23.3306941, "Longitude": -46.7294996}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 6, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Latitude": -23.3290542, "Longitude": -46.7276494}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 7, "Nome da Loja": "FEDERZONI SUPERMERCADOS", "Latitude": -23.327054, "Longitude": -46.7524679}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 8, "Nome da Loja": "MERCADO PARQUE PAULISTA", "Latitude": -23.2918239, "Longitude": -46.7395382}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 9, "Nome da Loja": "SUPERMERCADO FEDERZONI", "Latitude": -23.2877709, "Longitude": -46.7030695}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 10, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Latitude": -23.3351471, "Longitude": -46.8347444}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 1, "Dia da Semana": "Segunda", "Ordem": 11, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Latitude": -23.3353946, "Longitude": -46.8374416}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 1, "Nome da Loja": "SANDRA", "Latitude": -23.5038602, "Longitude": -46.7186146}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 2, "Nome da Loja": "B.B DISTRIBUIDORA", "Latitude": -23.52951, "Longitude": -46.741858}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.5277798, "Longitude": -46.7679185}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 4, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.4939109, "Longitude": -46.7874591}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 5, "Nome da Loja": "NASCIMENTO&SILVA COMERCIO DE PRODUTOS ALIMENTIOS", "Latitude": -23.4995529, "Longitude": -46.796749}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 6, "Nome da Loja": "SUPERMERCADO KIBE", "Latitude": -23.4457187, "Longitude": -46.7921908}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 7, "Nome da Loja": "KIBE ATACADISTA DE ALIMENTOS LTDA", "Latitude": -23.4305141, "Longitude": -46.7877742}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 8, "Nome da Loja": "MERCADINHO ROBERTO KIBE LTDA - ME", "Latitude": -23.4282631, "Longitude": -46.7944118}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 9, "Nome da Loja": "MERCADO FENIX", "Latitude": -23.4272488, "Longitude": -46.824985}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 10, "Nome da Loja": "ENCANTO", "Latitude": -23.4277168, "Longitude": -46.8263433}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 2, "Dia da Semana": "Ter\u00e7a", "Ordem": 11, "Nome da Loja": "COMERCIAL DE ALIMENTOS JORDMIX LTDA", "Latitude": -23.3366525, "Longitude": -46.837294}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 1, "Nome da Loja": "ZATTAO", "Latitude": -23.4819362, "Longitude": -46.7179359}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 2, "Nome da Loja": "SUPERMERCADO LOPES & LUMA LTDA", "Latitude": -23.4767157, "Longitude": -46.7221071}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 3, "Nome da Loja": "VELEJAR SUPERMERCADO LTDA", "Latitude": -23.4414737, "Longitude": -46.7372609}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 4, "Nome da Loja": "COMERCIAL SHITSU", "Latitude": -23.5485536, "Longitude": -46.783905}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 5, "Nome da Loja": "MERCADINHO AGOSTINHO", "Latitude": -23.543336, "Longitude": -46.7969615}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 6, "Nome da Loja": "SUPERMERCADO JAPAO", "Latitude": -23.5547882, "Longitude": -46.8013753}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 7, "Nome da Loja": "SUPERMERCADO BRUNO - LOJA II", "Latitude": -23.5699419, "Longitude": -46.8194207}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 8, "Nome da Loja": "SUPERMERCADO BRUNO - LOJA III", "Latitude": -23.5698129, "Longitude": -46.8240366}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 9, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.566157, "Longitude": -46.8236019}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 10, "Nome da Loja": "SUPERMERCADO BRUNO", "Latitude": -23.5743248, "Longitude": -46.8170749}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 3, "Dia da Semana": "Quarta", "Ordem": 11, "Nome da Loja": "SUPERMERCADO LISBOA", "Latitude": -23.580289, "Longitude": -46.8143114}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 1, "Nome da Loja": "MMM SUPERMERCADO LTDA", "Latitude": -23.5781938, "Longitude": -46.7980227}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 2, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.5543838, "Longitude": -46.8261654}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.5488256, "Longitude": -46.8348201}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 4, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS JAPAO LTDA", "Latitude": -23.5407472, "Longitude": -46.8826722}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 5, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.5298406, "Longitude": -46.8981268}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 6, "Nome da Loja": "N.S. LAR SUPERMERCADO LTDA", "Latitude": -23.5345602, "Longitude": -46.9259633}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 7, "Nome da Loja": "SANZITO SUPERMERCADOS LTDA", "Latitude": -23.5460735, "Longitude": -46.9331157}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 8, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.5473865, "Longitude": -46.9427536}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 9, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.5449841, "Longitude": -46.956073}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 4, "Dia da Semana": "Quinta", "Ordem": 10, "Nome da Loja": "N.S. LAR SUPERMERCADO LTDA", "Latitude": -23.5645276, "Longitude": -46.9324829}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 1, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS SUPER COTIA LTDA", "Latitude": -23.5670012, "Longitude": -46.7538444}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 2, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.6385813, "Longitude": -46.7795951}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 3, "Nome da Loja": "COMERCIO DE ALIMENTOS ALVES E FARIAS LTDA", "Latitude": -23.6587634, "Longitude": -46.7895018}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 4, "Nome da Loja": "SUPERMERCADOS BANDEIRA LTDA.", "Latitude": -23.7187514, "Longitude": -46.851248}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 5, "Nome da Loja": "DISTRIBUIDORA DE ALIMENTOS SUPER COTIA LTDA", "Latitude": -23.6180716, "Longitude": -46.9325576}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 6, "Nome da Loja": "FAMILIA SUPERMERCADOS 1 LTDA", "Latitude": -23.603513, "Longitude": -46.9314958}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 7, "Nome da Loja": "FAMILIA SUPERMERCADOS LTDA", "Latitude": -23.6059725, "Longitude": -46.9422143}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 8, "Nome da Loja": "RAI ATACADISTA", "Latitude": -23.6007443, "Longitude": -46.8990479}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 9, "Nome da Loja": "SP II", "Latitude": -23.5832252, "Longitude": -46.8658635}, {"Vendedor": "JULIVAL FERRARI RAMOS", "Dia": 5, "Dia da Semana": "Sexta", "Ordem": 10, "Nome da Loja": "SUPERMERCADO SUPER CITY SP II LTDA", "Latitude": -23.5832252, "Longitude": -46.8658635}];
+
+const COLORS = { 1: '#1565c0', 2: '#2e7d32', 3: '#e65100', 4: '#616161', 5: '#f9a825' };
+const DAY_NAMES = { 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta' };
+const START_POINTS = {
+  'CLAITON DOS SANTOS BATISTA': { lat: -24.0239813, lon: -46.5144143, label: 'Praia Grande' },
+  'JULIVAL FERRARI RAMOS': { lat: -23.4077722, lon: -46.353613, label: 'Arujá' }
+};
+
+let map, markers = [], polylines = [], startMarkers = [];
+let currentVendedor = 'all', currentDay = 'all';
+
+function initMap() {
+  map = L.map('map', { zoomControl: true }).setView([-23.9, -46.45], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  const vendedores = [...new Set(DATA.map(d => d.Vendedor))];
+  const sel = document.getElementById('vendedorFilter');
+  vendedores.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', e => { currentVendedor = e.target.value; updateMap(); });
+
+  updateMap();
+}
+
+function filterDay(day) {
+  currentDay = day;
+  document.querySelectorAll('.day-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.day == String(day));
+  });
+  updateMap();
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLon = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function updateMap() {
+  markers.forEach(m => map.removeLayer(m));
+  polylines.forEach(p => map.removeLayer(p));
+  startMarkers.forEach(m => map.removeLayer(m));
+  markers = []; polylines = []; startMarkers = [];
+
+  let filtered = DATA;
+  if (currentVendedor !== 'all') filtered = filtered.filter(d => d.Vendedor === currentVendedor);
+  if (currentDay !== 'all') filtered = filtered.filter(d => d.Dia === currentDay);
+
+  // Stats
+  document.getElementById('statLojas').textContent = filtered.length;
+  const uniqueDays = new Set(filtered.map(d => d.Vendedor + '-' + d.Dia));
+  document.getElementById('statDias').textContent = uniqueDays.size;
+
+  // Calculate total distance
+  let totalKm = 0;
+  const groups = {};
+  filtered.forEach(d => {
+    const key = d.Vendedor + '-' + d.Dia;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(d);
+  });
+  Object.values(groups).forEach(g => {
+    g.sort((a,b) => a.Ordem - b.Ordem);
+    for (let i = 1; i < g.length; i++) {
+      totalKm += haversine(g[i-1].Latitude, g[i-1].Longitude, g[i].Latitude, g[i].Longitude);
+    }
+  });
+  document.getElementById('statKm').textContent = Math.round(totalKm);
+
+  // Start points
+  const activeVendedores = currentVendedor !== 'all' ? [currentVendedor] : [...new Set(filtered.map(d => d.Vendedor))];
+  activeVendedores.forEach(v => {
+    const sp = START_POINTS[v];
+    if (!sp) return;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="start-icon">🏠</div>`,
+      iconSize: [32, 32], iconAnchor: [16, 16]
+    });
+    const m = L.marker([sp.lat, sp.lon], { icon, zIndexOffset: 1000 })
+      .addTo(map)
+      .bindPopup(`<b>Ponto de Partida</b><br>${v}<br>${sp.label}`);
+    startMarkers.push(m);
+  });
+
+  // Draw routes and markers per day
+  Object.entries(groups).forEach(([key, stores]) => {
+    stores.sort((a,b) => a.Ordem - b.Ordem);
+    const day = stores[0].Dia;
+    const vendedor = stores[0].Vendedor;
+    const color = COLORS[day];
+
+    // Route line
+    const sp = START_POINTS[vendedor];
+    const latlngs = sp ? [[sp.lat, sp.lon]] : [];
+    stores.forEach(s => latlngs.push([s.Latitude, s.Longitude]));
+
+    const line = L.polyline(latlngs, {
+      color, weight: 3, opacity: 0.7, dashArray: '8, 6'
+    }).addTo(map);
+    polylines.push(line);
+
+    // Markers
+    stores.forEach(s => {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="
+          background:${color}; color:white; width:26px; height:26px;
+          border-radius:50%; display:flex; align-items:center; justify-content:center;
+          font-size:11px; font-weight:700; border:2px solid white;
+          box-shadow:0 1px 4px rgba(0,0,0,0.3);
+        ">${s.Ordem}</div>`,
+        iconSize: [26, 26], iconAnchor: [13, 13]
+      });
+      const m = L.marker([s.Latitude, s.Longitude], { icon })
+        .addTo(map)
+        .bindPopup(`
+          <b>${s['Nome da Loja']}</b><br>
+          <span style="color:${color};font-weight:bold;">Dia ${s.Dia} - ${s['Dia da Semana']}</span><br>
+          Ordem: ${s.Ordem} de ${stores.length}<br>
+          Vendedor: ${s.Vendedor}<br>
+          <small>${s.Latitude.toFixed(6)}, ${s.Longitude.toFixed(6)}</small>
+        `);
+      markers.push(m);
+    });
+  });
+
+  // Fit bounds
+  if (markers.length > 0) {
+    const allPoints = markers.map(m => m.getLatLng());
+    startMarkers.forEach(m => allPoints.push(m.getLatLng()));
+    map.fitBounds(L.latLngBounds(allPoints).pad(0.1));
+  }
+
+  // Update sidebar
+  updateSidebar(filtered);
+}
+
+function updateSidebar(filtered) {
+  const header = document.getElementById('sidebarHeader');
+  header.textContent = `${filtered.length} lojas na rota`;
+
+  const list = document.getElementById('storeList');
+  list.innerHTML = '';
+
+  const sorted = [...filtered].sort((a,b) => {
+    if (a.Vendedor !== b.Vendedor) return a.Vendedor.localeCompare(b.Vendedor);
+    if (a.Dia !== b.Dia) return a.Dia - b.Dia;
+    return a.Ordem - b.Ordem;
+  });
+
+  let lastDay = null, lastVendedor = null;
+  sorted.forEach(s => {
+    if (s.Vendedor !== lastVendedor || s.Dia !== lastDay) {
+      const divider = document.createElement('div');
+      divider.style.cssText = 'padding:8px 16px;background:#f0f2f5;font-size:12px;font-weight:700;color:#555;border-bottom:1px solid #e0e0e0;';
+      const shortName = s.Vendedor.split(' ')[0];
+      divider.textContent = `${shortName} — ${s['Dia da Semana']} (Dia ${s.Dia})`;
+      list.appendChild(divider);
+      lastDay = s.Dia; lastVendedor = s.Vendedor;
+    }
+
+    const item = document.createElement('div');
+    item.className = 'store-item';
+    item.innerHTML = `
+      <div class="store-order" style="background:${COLORS[s.Dia]}">${s.Ordem}</div>
+      <div class="store-info">
+        <div class="store-name" title="${s['Nome da Loja']}">${s['Nome da Loja']}</div>
+        <div class="store-coords">${s.Latitude.toFixed(6)}, ${s.Longitude.toFixed(6)}</div>
+      </div>
+    `;
+    item.onclick = () => {
+      map.setView([s.Latitude, s.Longitude], 15);
+      const marker = markers.find(m => {
+        const ll = m.getLatLng();
+        return Math.abs(ll.lat - s.Latitude) < 0.0001 && Math.abs(ll.lng - s.Longitude) < 0.0001;
+      });
+      if (marker) marker.openPopup();
+    };
+    list.appendChild(item);
+  });
+}
+
+// Legend
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  const legendDiv = document.createElement('div');
+  legendDiv.className = 'legend';
+  legendDiv.innerHTML = `
+    <div class="legend-title">Legenda</div>
+    <div class="legend-item"><div class="start-icon" style="width:20px;height:20px;font-size:10px;border-width:2px;">🏠</div> Ponto de partida</div>
+    ${Object.entries(COLORS).map(([d,c]) => `
+      <div class="legend-item">
+        <div class="legend-color" style="background:${c}"></div>
+        <span>Dia ${d} — ${DAY_NAMES[d]}</span>
+      </div>
+    `).join('')}
+    <div class="legend-item"><div class="legend-line" style="background:#666;border:1px dashed #333;"></div> Rota do dia</div>
+  `;
+  document.getElementById('map').appendChild(legendDiv);
+});
+</script>
+</body>
+</html>
